@@ -1,0 +1,89 @@
+// Hinweis: Shopware stellt die $color-*-SCSS-Variablen im Plugin-Admin-Scope nicht bereit,
+// daher bewusst feste Hex-Werte für die semantischen Statusfarben (grün/rot/grau).
+$rc-ai-status-allowed: #37d046;
+$rc-ai-status-blocked: #de294c;
+$rc-ai-status-unknown: #d1d9e0;
+$rc-ai-muted: #758ca3;
+
+.rc-ai-discovery-robots-status {
+    &__hint {
+        margin: 0 0 12px;
+        color: $rc-ai-muted;
+    }
+
+    &__channel {
+        margin-bottom: 20px;
+    }
+
+    &__head {
+        margin-bottom: 8px;
+    }
+
+    &__url {
+        margin-left: 8px;
+        color: $rc-ai-muted;
+        font-size: 12px;
+    }
+
+    &__group {
+        margin-bottom: 12px;
+    }
+
+    &__group-title {
+        margin: 0 0 6px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $rc-ai-muted;
+    }
+
+    &__note {
+        color: $rc-ai-muted;
+        font-size: 11px;
+        font-style: italic;
+    }
+
+    &__list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 12px;
+        padding: 0;
+        list-style: none;
+    }
+
+    &__item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        background: #f9fafb;
+        border: 1px solid #e0e6eb;
+    }
+
+    &__dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: $rc-ai-status-unknown;
+        flex-shrink: 0;
+    }
+
+    &__state {
+        color: $rc-ai-muted;
+        font-size: 12px;
+    }
+
+    &__item.is--allowed &__dot {
+        background: $rc-ai-status-allowed;
+    }
+
+    &__item.is--blocked &__dot {
+        background: $rc-ai-status-blocked;
+    }
+
+    &__item.is--unknown &__dot {
+        background: $rc-ai-status-unknown;
+    }
+}

@@ -1,0 +1,25 @@
+{
+  "base": "/bundles/rcaidiscovery/administration/",
+  "entryPoints": {
+    "rc-ai-discovery": {
+      "css": [
+        "/bundles/rcaidiscovery/administration/assets/rc-ai-discovery-DRZE-g00.css"
+      ],
+      "dynamic": [],
+      "js": [
+        "/bundles/rcaidiscovery/administration/assets/rc-ai-discovery-hahcqo7o.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "7.1.0",
+    7,
+    1,
+    0
+  ],
+  "viteServer": null
+}

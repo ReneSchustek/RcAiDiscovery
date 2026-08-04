@@ -1,0 +1,56 @@
+{
+    "rc-ai-discovery": {
+        "llmsDocuments": {
+            "empty": "No files generated yet. \"Refresh now\" creates them.",
+            "error": "The action could not be performed.",
+            "refresh": "Refresh now",
+            "refreshed": "The llms files have been regenerated.",
+            "edit": "Edit",
+            "save": "Save",
+            "saved": "The content has been saved.",
+            "cancel": "Cancel",
+            "regenerate": "Regenerate",
+            "regenerated": "The automatic content has been restored.",
+            "contentLabel": "File content",
+            "generatedAt": "Updated:",
+            "variant": {
+                "short": "Short version (/llms.txt)",
+                "full": "Long version (/llms-full.txt)"
+            },
+            "state": {
+                "auto": "automatic",
+                "custom": "edited"
+            }
+        },
+        "robotsStatus": {
+            "loadError": "The robots.txt status could not be loaded.",
+            "noChannels": "No active storefront sales channel found.",
+            "refresh": "Re-check",
+            "status": {
+                "allowed": "allowed",
+                "blocked": "blocked",
+                "unknown": "unknown"
+            },
+            "group": {
+                "search": "Search and citation",
+                "fetch": "User-initiated fetching",
+                "training": "Training"
+            },
+            "note": {
+                "dual_purpose": "also powers the classic search engine — checked on purpose, never ruled",
+                "legacy_token": "superseded token — still checked, no longer written"
+            },
+            "reason": {
+                "allowed_default": "No rule — allowed by default.",
+                "allowed_own": "Allowed via a dedicated rule for this crawler.",
+                "allowed_wildcard": "Allowed via the catch-all rule (User-agent: *).",
+                "blocked_own": "Blocked via a dedicated rule for this crawler.",
+                "blocked_wildcard": "Blocked via the catch-all rule (User-agent: *).",
+                "no_domain": "No domain is configured for this sales channel.",
+                "host_unreadable": "The domain host could not be read.",
+                "robots_unavailable": "The robots.txt could not be determined.",
+                "check_failed": "The check failed."
+            }
+        }
+    }
+}

@@ -1,0 +1,40 @@
+# Dateien, in denen Anbieter- und Crawler-Namen (ChatGPT-User, ClaudeBot, Claude-SearchBot,
+# Copilot …) legitimer Fachinhalt sind: das Plugin regelt genau diese Crawler in der robots.txt
+# und benennt sie in Katalog, Konfiguration, Doku und Tests.
+.ai-trace-ignore
+README.md
+CHANGELOG_de-DE.md
+src/Resources/config/config.xml
+src/Service/Robots/AiCrawlerCatalog.php
+src/Resources/app/administration/src/snippet/*.json
+tests/Unit/Service/Robots/*.php
+tests/Unit/Subscriber/*.php
+
+# Begriffs-Ausnahmen. Dieses Plugin sorgt für die Auffindbarkeit eines Shops in
+# KI-Systemen und regelt den Zugriff von KI-Crawlern in der robots.txt — es kann
+# über seinen eigenen Gegenstand nicht schreiben, ohne das Wort zu benutzen.
+# Bewusst einzelne Zusammensetzungen statt einer pauschalen Ausnahme, damit
+# eine echte Spur weiterhin auffällt.
+term:KI-Antworten[a-zA-ZäöüÄÖÜß]*
+term:KI-Auffindbarkeit[a-zA-ZäöüÄÖÜß]*
+term:KI-Block[a-zA-ZäöüÄÖÜß]*
+term:KI-Check[a-zA-ZäöüÄÖÜß]*
+term:KI-Crawler[a-zA-ZäöüÄÖÜß]*
+term:KI-Freigabe[a-zA-ZäöüÄÖÜß]*
+term:KI-Regel[a-zA-ZäöüÄÖÜß]*
+term:KI-Status[a-zA-ZäöüÄÖÜß]*
+term:KI-System[a-zA-ZäöüÄÖÜß]*
+term:KI-Zugriff[a-zA-ZäöüÄÖÜß]*
+
+# Crawler-Kennungen der Anbieter. Sie stehen im Katalog, in der Doku und in den
+# Tests, weil das Plugin genau diese Crawler in der robots.txt regelt — es kann
+# sie nicht regeln, ohne sie zu benennen. Als Begriffs-Ausnahme statt als
+# Pfad-Ausnahme eingetragen, damit sie auch in der Historie greifen: Die
+# Prüfung der Commit-Inhalte kennt nur Begriffe, keine Pfade.
+term:ChatGPT[A-Za-z-]*
+term:ClaudeBot
+term:Claude-SearchBot
+term:Claude-User
+term:Claude-Web
+term:Copilot
+term:anthropic-ai

@@ -1,0 +1,56 @@
+{
+    "rc-ai-discovery": {
+        "llmsDocuments": {
+            "empty": "Noch keine Dateien erzeugt. „Jetzt aktualisieren\" legt sie an.",
+            "error": "Die Aktion konnte nicht ausgeführt werden.",
+            "refresh": "Jetzt aktualisieren",
+            "refreshed": "Die llms-Dateien wurden neu erzeugt.",
+            "edit": "Bearbeiten",
+            "save": "Speichern",
+            "saved": "Der Inhalt wurde gespeichert.",
+            "cancel": "Abbrechen",
+            "regenerate": "Neu generieren",
+            "regenerated": "Der automatische Inhalt wurde wiederhergestellt.",
+            "contentLabel": "Inhalt der Datei",
+            "generatedAt": "Stand:",
+            "variant": {
+                "short": "Kurzfassung (/llms.txt)",
+                "full": "Langfassung (/llms-full.txt)"
+            },
+            "state": {
+                "auto": "automatisch",
+                "custom": "bearbeitet"
+            }
+        },
+        "robotsStatus": {
+            "loadError": "Der robots.txt-Status konnte nicht geladen werden.",
+            "noChannels": "Kein aktiver Storefront-Verkaufskanal gefunden.",
+            "refresh": "Neu prüfen",
+            "status": {
+                "allowed": "erlaubt",
+                "blocked": "blockiert",
+                "unknown": "unbekannt"
+            },
+            "group": {
+                "search": "Suche und Zitation",
+                "fetch": "Abruf auf Nutzerwunsch",
+                "training": "Training"
+            },
+            "note": {
+                "dual_purpose": "trägt auch die klassische Suchmaschine — wird bewusst nur geprüft, nicht geregelt",
+                "legacy_token": "abgelöstes Token — wird weiter geprüft, aber nicht mehr geschrieben"
+            },
+            "reason": {
+                "allowed_default": "Keine Regel — standardmäßig erlaubt.",
+                "allowed_own": "Erlaubt über eine eigene Regel für diesen Crawler.",
+                "allowed_wildcard": "Erlaubt über die Sammelregel (User-agent: *).",
+                "blocked_own": "Blockiert über eine eigene Regel für diesen Crawler.",
+                "blocked_wildcard": "Blockiert über die Sammelregel (User-agent: *).",
+                "no_domain": "Für diesen Verkaufskanal ist keine Domain konfiguriert.",
+                "host_unreadable": "Der Domain-Host konnte nicht gelesen werden.",
+                "robots_unavailable": "Die robots.txt konnte nicht ermittelt werden.",
+                "check_failed": "Die Prüfung ist fehlgeschlagen."
+            }
+        }
+    }
+}

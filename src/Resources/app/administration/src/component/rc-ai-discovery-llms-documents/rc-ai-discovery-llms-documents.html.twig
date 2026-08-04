@@ -1,0 +1,68 @@
+{% block rc_ai_discovery_llms_documents %}
+<div class="rc-ai-discovery-llms-documents">
+
+    <sw-loader v-if="isLoading" />
+
+    <template v-else>
+        <p v-if="!documents.length" class="rc-ai-discovery-llms-documents__hint">
+            {{ $tc('rc-ai-discovery.llmsDocuments.empty') }}
+        </p>
+
+        <div
+            v-for="document in documents"
+            :key="document.id"
+            class="rc-ai-discovery-llms-documents__item"
+        >
+            <div class="rc-ai-discovery-llms-documents__head">
+                <strong>{{ document.url }}</strong>
+                <span class="rc-ai-discovery-llms-documents__variant">{{ variantLabel(document.variant) }}</span>
+                <span
+                    class="rc-ai-discovery-llms-documents__state"
+                    :class="document.isCustom ? 'is--custom' : 'is--auto'"
+                >
+                    {{ stateLabel(document.isCustom) }}
+                </span>
+                <span class="rc-ai-discovery-llms-documents__date">
+                    {{ $tc('rc-ai-discovery.llmsDocuments.generatedAt') }} {{ formatDate(document.generatedAt) }}
+                </span>
+            </div>
+
+            <template v-if="editingId === document.id">
+                <mt-textarea
+                    v-model="draft"
+                    :label="$tc('rc-ai-discovery.llmsDocuments.contentLabel')"
+                    :rows="14"
+                />
+
+                <div class="rc-ai-discovery-llms-documents__actions">
+                    <mt-button variant="primary" size="small" @click="save(document)">
+                        {{ $tc('rc-ai-discovery.llmsDocuments.save') }}
+                    </mt-button>
+                    <mt-button variant="secondary" size="small" @click="cancelEdit">
+                        {{ $tc('rc-ai-discovery.llmsDocuments.cancel') }}
+                    </mt-button>
+                </div>
+            </template>
+
+            <div v-else class="rc-ai-discovery-llms-documents__actions">
+                <mt-button variant="secondary" size="small" @click="edit(document)">
+                    {{ $tc('rc-ai-discovery.llmsDocuments.edit') }}
+                </mt-button>
+                <mt-button
+                    v-if="document.isCustom"
+                    variant="secondary"
+                    size="small"
+                    @click="regenerate(document)"
+                >
+                    {{ $tc('rc-ai-discovery.llmsDocuments.regenerate') }}
+                </mt-button>
+            </div>
+        </div>
+
+        <mt-button variant="secondary" size="small" @click="refresh">
+            {{ $tc('rc-ai-discovery.llmsDocuments.refresh') }}
+        </mt-button>
+    </template>
+
+</div>
+{% endblock %}

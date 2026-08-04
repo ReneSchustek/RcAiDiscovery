@@ -1,0 +1,109 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services
+           http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <!-- AD02: baut den llms.txt-Inhalt automatisch aus den Shop-Daten. -->
+        <service id="Ruhrcoder\RcAiDiscovery\Service\LlmsTxtGenerator">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <argument type="service" id="sales_channel.category.repository"/>
+            <argument type="service" id="Shopware\Core\Content\Seo\SeoUrlPlaceholderHandlerInterface"/>
+        </service>
+
+        <!-- AD03: liest die Admin-Overrides (Titel, Beschreibung, Zusatz-Inhalt) je Sales-Channel. -->
+        <service id="Ruhrcoder\RcAiDiscovery\Service\LlmsTxtConfigProvider">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+        </service>
+
+        <!-- AD06: gespeicherte llms-Dateien je Sales-Channel-Domain. -->
+        <service id="Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentDefinition">
+            <tag name="shopware.entity.definition"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentGenerator">
+            <argument type="service" id="sales_channel_domain.repository"/>
+            <argument type="service" id="rc_ai_discovery_llms_document.repository"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\LlmsTxtGenerator"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\LlmsTxtConfigProvider"/>
+            <argument type="service" id="Shopware\Core\Content\Seo\SeoUrlPlaceholderHandlerInterface"/>
+            <argument type="service" id="Shopware\Core\Framework\Adapter\Twig\TemplateFinder"/>
+            <argument type="service" id="twig"/>
+            <argument type="service" id="Shopware\Core\Framework\Adapter\Cache\CacheInvalidator"/>
+            <argument type="service" id="logger"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentOverview">
+            <argument type="service" id="rc_ai_discovery_llms_document.repository"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\ScheduledTask\LlmsGenerateTask">
+            <tag name="shopware.scheduled.task"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\ScheduledTask\LlmsGenerateTaskHandler">
+            <argument type="service" id="scheduled_task.repository"/>
+            <argument type="service" id="logger"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentGenerator"/>
+            <argument type="service" id="logger"/>
+            <tag name="messenger.message_handler"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\Controller\Api\LlmsDocumentController" public="true">
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentOverview"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentGenerator"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+        <!-- AD02/AD06: Storefront-Routen /llms.txt und /llms-full.txt (liefern den gespeicherten Stand). -->
+        <service id="Ruhrcoder\RcAiDiscovery\Storefront\Controller\LlmsTxtController" public="true">
+            <argument type="service" id="rc_ai_discovery_llms_document.repository"/>
+            <argument type="service" id="sales_channel_domain.repository"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentGenerator"/>
+            <argument type="service" id="Shopware\Core\Framework\Adapter\Cache\CacheTagCollector"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+        <!-- AD05: Katalog der KI-Crawler (Gruppen Suche, Abruf, Training) und die Regel-Einstellungen. -->
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog"/>
+
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiRulesConfigProvider">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+        </service>
+
+        <!-- AD05: ergänzt die robots.txt um die KI-Regeln, sobald sie eingeschaltet sind. -->
+        <service id="Ruhrcoder\RcAiDiscovery\Subscriber\RobotsAiRulesSubscriber">
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiRulesConfigProvider"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
+        <!-- AD04: robots.txt-KI-Crawler-Check. -->
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Robots\RobotsAiCrawlerEvaluator">
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Robots\EffectiveRobotsTxtProvider">
+            <argument type="service" id="Shopware\Storefront\Page\Robots\RobotsPageLoader"/>
+            <argument type="service" id="Shopware\Core\Framework\Adapter\Twig\TemplateFinder"/>
+            <argument type="service" id="twig"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Robots\RobotsCheckService">
+            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\EffectiveRobotsTxtProvider"/>
+            <argument type="service" id="Shopware\Storefront\Page\Robots\Parser\RobotsDirectiveParser"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\RobotsAiCrawlerEvaluator"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog"/>
+            <argument type="service" id="logger"/>
+        </service>
+
+        <service id="Ruhrcoder\RcAiDiscovery\Controller\Api\RobotsCheckController" public="true">
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\RobotsCheckService"/>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+    </services>
+</container>

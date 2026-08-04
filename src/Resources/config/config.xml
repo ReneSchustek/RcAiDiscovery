@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
+
+    <card>
+        <title lang="de-DE">llms.txt-Inhalt</title>
+        <title lang="en-GB">llms.txt content</title>
+
+        <input-field type="text">
+            <name>llmsTitle</name>
+            <label>Titel</label>
+            <label lang="en-GB">Title</label>
+            <helpText>Überschreibt die erste Zeile der llms.txt. Leer lassen: es wird der Shopname aus den Grundeinstellungen verwendet.</helpText>
+            <helpText lang="en-GB">Overrides the first line of llms.txt. Leave empty to use the shop name from the basic information settings.</helpText>
+        </input-field>
+
+        <input-field type="textarea">
+            <name>llmsSummary</name>
+            <label>Kurzbeschreibung</label>
+            <label lang="en-GB">Summary</label>
+            <helpText>Ein bis zwei Sätze, die KI-Systemen erklären, was der Shop anbietet. Leer lassen: es wird die Beschreibung der Hauptkategorie verwendet.</helpText>
+            <helpText lang="en-GB">One or two sentences explaining what the shop offers. Leave empty to use the description of the main navigation category.</helpText>
+        </input-field>
+
+        <input-field type="textarea">
+            <name>llmsAdditionalContent</name>
+            <label>Zusätzlicher Inhalt</label>
+            <label lang="en-GB">Additional content</label>
+            <helpText>Eigener Markdown-Abschnitt, der vor der Sitemap angehängt wird – zum Beispiel „## Service" mit Links zu Beratung, Versand oder Kontakt.</helpText>
+            <helpText lang="en-GB">Custom Markdown section appended before the sitemap – for example "## Service" with links to advice, shipping or contact.</helpText>
+        </input-field>
+    </card>
+
+    <card>
+        <title lang="de-DE">Gespeicherte llms-Dateien</title>
+        <title lang="en-GB">Stored llms files</title>
+
+        <component name="rc-ai-discovery-llms-documents">
+            <name>rcAiDiscoveryLlmsDocuments</name>
+        </component>
+    </card>
+
+    <card>
+        <title lang="de-DE">KI-Crawler in der robots.txt</title>
+        <title lang="en-GB">AI crawlers in robots.txt</title>
+
+        <component name="rc-ai-discovery-robots-status">
+            <name>rcAiDiscoveryRobotsStatus</name>
+        </component>
+    </card>
+
+    <card>
+        <title lang="de-DE">KI-Regeln in der robots.txt</title>
+        <title lang="en-GB">AI rules in robots.txt</title>
+
+        <input-field type="bool">
+            <name>aiRulesEnabled</name>
+            <label>KI-Regeln schreiben</label>
+            <label lang="en-GB">Write AI rules</label>
+            <helpText>Ist dies aus, bleibt die robots.txt unverändert. Ist es an, ergänzt das Plugin für jeden bekannten KI-Crawler eine eigene Regel nach den Einstellungen unten.</helpText>
+            <helpText lang="en-GB">While off, robots.txt stays untouched. While on, the plugin adds a rule for every known AI crawler according to the settings below.</helpText>
+            <defaultValue>false</defaultValue>
+        </input-field>
+
+        <input-field type="single-select">
+            <name>aiRulesSearch</name>
+            <label>Suche und Zitation</label>
+            <label lang="en-GB">Search and citation</label>
+            <helpText>Bots, die für KI-Antworten indexieren (u. a. OAI-SearchBot, Claude-SearchBot, PerplexityBot). Über sie wird der Shop in Antworten zitiert und verlinkt.</helpText>
+            <helpText lang="en-GB">Bots that index for AI answers (e.g. OAI-SearchBot, Claude-SearchBot, PerplexityBot). They are how the shop gets cited and linked in answers.</helpText>
+            <options>
+                <option>
+                    <id>allow</id>
+                    <name>Erlauben</name>
+                    <name lang="en-GB">Allow</name>
+                </option>
+                <option>
+                    <id>block</id>
+                    <name>Sperren</name>
+                    <name lang="en-GB">Block</name>
+                </option>
+            </options>
+            <defaultValue>allow</defaultValue>
+        </input-field>
+
+        <input-field type="single-select">
+            <name>aiRulesFetch</name>
+            <label>Abruf auf Nutzerwunsch</label>
+            <label lang="en-GB">User-initiated fetching</label>
+            <helpText>Bots, die eine Seite holen, weil ein Nutzer gerade danach fragt (u. a. ChatGPT-User, Claude-User, MistralAI-User). Das ist direkter Kundenkontakt.</helpText>
+            <helpText lang="en-GB">Bots that fetch a page because a user is asking about it right now (e.g. ChatGPT-User, Claude-User, MistralAI-User). This is direct customer contact.</helpText>
+            <options>
+                <option>
+                    <id>allow</id>
+                    <name>Erlauben</name>
+                    <name lang="en-GB">Allow</name>
+                </option>
+                <option>
+                    <id>block</id>
+                    <name>Sperren</name>
+                    <name lang="en-GB">Block</name>
+                </option>
+            </options>
+            <defaultValue>allow</defaultValue>
+        </input-field>
+
+        <input-field type="single-select">
+            <name>aiRulesTraining</name>
+            <label>Training</label>
+            <label lang="en-GB">Training</label>
+            <helpText>Bots, die Material für das Modelltraining sammeln (u. a. GPTBot, ClaudeBot, CCBot). Sie bringen keine Sichtbarkeit — hier entscheidet sich, ob die Shop-Inhalte ins Training fließen dürfen.</helpText>
+            <helpText lang="en-GB">Bots collecting material for model training (e.g. GPTBot, ClaudeBot, CCBot). They provide no visibility – this is where you decide whether shop content may be used for training.</helpText>
+            <options>
+                <option>
+                    <id>allow</id>
+                    <name>Erlauben</name>
+                    <name lang="en-GB">Allow</name>
+                </option>
+                <option>
+                    <id>block</id>
+                    <name>Sperren</name>
+                    <name lang="en-GB">Block</name>
+                </option>
+            </options>
+            <defaultValue>allow</defaultValue>
+        </input-field>
+    </card>
+
+</config>

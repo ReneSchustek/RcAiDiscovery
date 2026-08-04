@@ -1,0 +1,58 @@
+{% block rc_ai_discovery_robots_status %}
+<div class="rc-ai-discovery-robots-status">
+
+    <sw-loader v-if="isLoading" />
+
+    <template v-else>
+        <p v-if="!salesChannels.length" class="rc-ai-discovery-robots-status__hint">
+            {{ $tc('rc-ai-discovery.robotsStatus.noChannels') }}
+        </p>
+
+        <div
+            v-for="channel in salesChannels"
+            :key="channel.salesChannelId"
+            class="rc-ai-discovery-robots-status__channel"
+        >
+            <div class="rc-ai-discovery-robots-status__head">
+                <strong>{{ channel.name }}</strong>
+                <span v-if="channel.url" class="rc-ai-discovery-robots-status__url">{{ channel.url }}</span>
+            </div>
+
+            <div
+                v-for="entry in groupsOf(channel.crawlers)"
+                :key="entry.group"
+                class="rc-ai-discovery-robots-status__group"
+            >
+                <h4 class="rc-ai-discovery-robots-status__group-title">{{ groupLabel(entry.group) }}</h4>
+
+                <ul class="rc-ai-discovery-robots-status__list">
+                    <li
+                        v-for="crawler in entry.crawlers"
+                        :key="crawler.token"
+                        class="rc-ai-discovery-robots-status__item"
+                        :class="'is--' + crawler.status"
+                        :aria-label="itemLabel(crawler)"
+                        :title="reasonLabel(crawler.reasonCode)"
+                    >
+                        <span class="rc-ai-discovery-robots-status__dot" aria-hidden="true"></span>
+                        <span class="rc-ai-discovery-robots-status__token">{{ crawler.token }}</span>
+                        <span class="rc-ai-discovery-robots-status__state">{{ statusLabel(crawler.status) }}</span>
+                        <span v-if="crawler.noteCode" class="rc-ai-discovery-robots-status__note">
+                            {{ noteLabel(crawler.noteCode) }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <mt-button
+            variant="secondary"
+            size="small"
+            @click="load"
+        >
+            {{ $tc('rc-ai-discovery.robotsStatus.refresh') }}
+        </mt-button>
+    </template>
+
+</div>
+{% endblock %}

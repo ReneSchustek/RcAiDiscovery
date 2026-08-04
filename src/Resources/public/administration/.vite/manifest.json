@@ -1,0 +1,11 @@
+{
+  "main.js": {
+    "file": "assets/rc-ai-discovery-hahcqo7o.js",
+    "name": "rc-ai-discovery",
+    "src": "main.js",
+    "isEntry": true,
+    "css": [
+      "assets/rc-ai-discovery-DRZE-g00.css"
+    ]
+  }
+}

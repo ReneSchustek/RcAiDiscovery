@@ -1,0 +1,54 @@
+// Wie in der Robots-Komponente: feste Hex-Werte, weil Shopware die $color-*-Variablen im
+// Plugin-Admin-Scope nicht bereitstellt.
+$rc-ai-muted: #758ca3;
+$rc-ai-custom: #f0a13d;
+$rc-ai-auto: #37d046;
+
+.rc-ai-discovery-llms-documents {
+    &__hint {
+        margin: 0 0 12px;
+        color: $rc-ai-muted;
+    }
+
+    &__item {
+        margin-bottom: 16px;
+        padding: 12px;
+        border: 1px solid #e0e6eb;
+        border-radius: 4px;
+    }
+
+    &__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    &__variant,
+    &__date {
+        color: $rc-ai-muted;
+        font-size: 12px;
+    }
+
+    &__state {
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        color: #ffffff;
+
+        &.is--custom {
+            background: $rc-ai-custom;
+        }
+
+        &.is--auto {
+            background: $rc-ai-auto;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+}
