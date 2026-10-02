@@ -149,7 +149,7 @@ final class LlmsTxtGeneratorTest extends TestCase
 
     /**
      * Regressionsschutz: ohne Overrides muss die Ausgabe exakt dem Stand vor der Admin-Konfiguration
-     * entsprechen — die Automatik darf sich durch AD03 in keinem Zeichen verändern.
+     * entsprechen — die Automatik darf sich durch die Pflege im Admin in keinem Zeichen verändern.
      */
     public function testAutoConfigProducesUnchangedOutput(): void
     {

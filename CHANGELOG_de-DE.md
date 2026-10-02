@@ -92,7 +92,7 @@ Am Code des Plugins wurde nichts geändert.
 - Korrektes robots.txt-Wildcard-Matching (`*`/`$`): Muster wie `Disallow: /*.pdf` melden den Crawler
   nicht mehr fälschlich als blockiert. Mehrere Blöcke desselben User-Agents werden zusammengeführt.
 - effektive robots.txt wird über den `TemplateFinder` aufgelöst — berücksichtigt spätere
-  `sw_extends`-Overrides (relevant ab AD05).
+  `sw_extends`-Overrides (relevant, sobald das Plugin selbst Regeln in die robots.txt schreibt).
 - Admin-Endpoint mit ACL (`sales_channel:read`); Fehler pro Sales-Channel werden abgefangen, als
   „unbekannt" gemeldet und mit Kontext geloggt (Graceful Degradation).
 - Statusgründe als sprachneutrale Codes, im Admin per Snippet (de/en) übersetzt; Admin-Komponente
@@ -117,4 +117,4 @@ Am Code des Plugins wurde nichts geändert.
   Plugin-Klasse, Quality-Toolchain (PHPUnit, PHPStan Level 8, PHP-CS-Fixer), Doku-Grundgerüst.
 - Bootstrap-Smoke-Test (Vererbung, `final`, `strict_types`, Namespace, Icon).
 
-> Noch keine fachliche Funktion. llms.txt-Auslieferung und robots.txt-KI-Check folgen in den Briefs AD02 ff.
+> Noch keine fachliche Funktion. llms.txt-Auslieferung und robots.txt-KI-Check folgen in den nächsten Versionen.

@@ -13,7 +13,7 @@ robots.txt. Daraus ergeben sich folgende zu beachtende Flächen:
 - **Öffentliche Route `/llms.txt`** — liefert `text/plain` ohne Authentifizierung aus. Es dürfen
   ausschließlich für die Öffentlichkeit bestimmte Inhalte einfließen; keine internen Daten,
   keine Kundendaten, keine Preise mit Rabattlogik, keine Admin-Pfade.
-- **Admin-Override-Felder (geplant, AD03)** — aktuell fließen ausschließlich automatisch generierte,
+- **Admin-Override-Felder (geplant)** — aktuell fließen ausschließlich automatisch generierte,
   öffentliche Shop-Daten in die llms.txt (kein Admin-Override implementiert). Sobald der Override kommt,
   gilt: im Admin gepflegter Inhalt wird öffentlich als reines `text/plain` ausgeliefert und muss vor
   der Ausgabe bereinigt werden (Markdown-Linktext maskieren, kein ungeprüftes Markup).
