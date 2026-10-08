@@ -13,14 +13,19 @@ use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Führt die geplante Generierung aus. Ein Fehler wird geloggt und die Aufgabe neu eingeplant,
- * damit ein einzelner Ausfall (etwa eine kurzzeitig unerreichbare Datenbank) nicht dazu führt,
- * dass die Dateien dauerhaft veralten.
+ * Führt die geplante Generierung aus und verzichtet auf ein eigenes `catch`.
+ *
+ * Fehler einer einzelnen Domain fängt `LlmsDocumentGenerator::generateAll()` schon ab. Was bis hier
+ * durchschlägt, etwa eine unerreichbare Datenbank, protokolliert der Ausführer des Kerns und plant
+ * die Aufgabe neu ein, weil `LlmsGenerateTask::shouldRescheduleOnFailure()` das verlangt.
  */
 #[AsMessageHandler(handles: LlmsGenerateTask::class)]
 final class LlmsGenerateTaskHandler extends ScheduledTaskHandler
 {
     /**
+     * `$exceptionLogger` gehört der Basisklasse, `$logger` meldet den erfolgreichen Lauf; beide
+     * bekommen in der `services.xml` denselben Dienst `logger`.
+     *
      * @param EntityRepository<ScheduledTaskCollection> $scheduledTaskRepository
      */
     public function __construct(
@@ -34,6 +39,7 @@ final class LlmsGenerateTaskHandler extends ScheduledTaskHandler
 
     public function run(): void
     {
+        // Ohne `force`: in der Verwaltung bearbeitete Dokumente bleiben unangetastet.
         $written = $this->documentGenerator->generateAll(Context::createDefaultContext());
 
         $this->logger->info('llms-Dateien neu erzeugt', ['documents' => $written]);

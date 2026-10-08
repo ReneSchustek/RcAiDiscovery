@@ -8,6 +8,12 @@ use PHPUnit\Framework\TestCase;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawler;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog;
 
+/**
+ * Prüft den Crawler-Katalog, aus dem sowohl die robots.txt-Regeln als auch der KI-Check der
+ * Verwaltung gespeist werden. Ein Fehler hier wirkt in beide Richtungen: doppelte Blöcke in der
+ * robots.txt, eine Regel für Bingbot, die die normale Bing-Suche mitsperrt, oder ein Crawler, den
+ * die Übersicht keiner Gruppe zuordnen kann.
+ */
 final class AiCrawlerCatalogTest extends TestCase
 {
     public function testTokensAreUnique(): void
@@ -40,7 +46,8 @@ final class AiCrawlerCatalogTest extends TestCase
     }
 
     /**
-     * Abgelöste Tokens werden weiter ausgewertet (bestehende robots.txt), aber nie neu geschrieben.
+     * Abgelöste Tokens bleiben im Katalog, damit eine vorhandene Regel für sie im KI-Check noch
+     * bewertet wird; eine neue Regel schreibt das Plugin für sie nicht.
      */
     public function testLegacyTokensAreEvaluatedButNeverWritten(): void
     {
@@ -54,8 +61,8 @@ final class AiCrawlerCatalogTest extends TestCase
     }
 
     /**
-     * Bingbot trägt Copilot, ist aber zugleich die normale Bing-Suche — eine eigene Regel würde
-     * die klassische Suchmaschine mitregeln.
+     * Bingbot trägt Copilot, ist aber zugleich die normale Bing-Suche. Eine eigene Regel würde die
+     * klassische Suchmaschine mitregeln, deshalb wird er nur geprüft.
      */
     public function testDualPurposeCrawlerIsCheckedOnly(): void
     {

@@ -19,23 +19,27 @@ use Shopware\Core\Framework\DataAbstractionLayer\FieldCollection;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelDomain\SalesChannelDomainDefinition;
 
 /**
- * Definition für `rc_ai_discovery_llms_document` — der gespeicherte Inhalt einer llms-Datei.
+ * Der gespeicherte, auslieferungsfertige Inhalt einer llms-Datei.
  *
- * Geschlüsselt auf die Sales-Channel-Domain, weil sie Sprache und Basis-URL festlegt: der Inhalt
- * enthält bereits absolute Links und ist damit domain-spezifisch. Pro Domain gibt es je eine
- * Kurz- und eine Langfassung (UNIQUE auf domain + variant).
+ * Geschlüsselt ist auf die Domain und nicht auf den Verkaufskanal, weil die Domain Sprache und
+ * Basisadresse festlegt und der Text bereits absolute Links enthält. Je Domain gibt es eine Kurz-
+ * und eine Langfassung; der eindeutige Schlüssel auf Domain und Variante steht in der Migration.
  */
 final class LlmsDocumentDefinition extends EntityDefinition
 {
     public const ENTITY_NAME = 'rc_ai_discovery_llms_document';
 
+    /**
+     * Kurzfassung für `/llms.txt`. Die Langfassung für `/llms-full.txt` ergänzt Beschreibungen an
+     * den Links und die Seiten der Footer-Kategorie.
+     */
     public const VARIANT_SHORT = 'short';
 
     public const VARIANT_FULL = 'full';
 
     /**
-     * Cache-Tag eines Dokuments: die Route setzt es beim Ausliefern, die Generierung räumt damit
-     * gezielt den HTTP-Cache dieser einen Datei ab.
+     * Cache-Tag eines Dokuments. Die Storefront-Route setzt es beim Ausliefern, Generierung und
+     * Bearbeitung räumen damit den HTTP-Cache genau dieser einen Datei ab.
      */
     public static function cacheTag(string $salesChannelDomainId, string $variant): string
     {
@@ -57,6 +61,10 @@ final class LlmsDocumentDefinition extends EntityDefinition
         return LlmsDocumentCollection::class;
     }
 
+    /**
+     * `variant` ist auf 16 Zeichen begrenzt wie die Spalte in der Migration; die beiden Werte sind
+     * deutlich kürzer. `createdAt` und `updatedAt` ergänzt der Kern selbst.
+     */
     protected function defineFields(): FieldCollection
     {
         return new FieldCollection([

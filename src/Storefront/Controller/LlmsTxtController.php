@@ -23,16 +23,17 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Liefert die gespeicherten llms-Dateien als text/plain aus.
+ * Liefert `/llms.txt` und `/llms-full.txt` als `text/plain` aus dem Speicher aus.
  *
- * Der gespeicherte Text ist bereits fertig (absolute Links), deshalb kommt die Route ohne
- * `SalesChannelContext` aus: ein Abruf kostet nur noch einen Datensatz statt der Kategorie-Abfragen.
+ * Der gespeicherte Text ist fertig, mit absoluten Links. Die Route braucht deshalb keinen
+ * `SalesChannelContext`, und ein Abruf kostet einen Datensatz statt der Kategorie-Abfragen.
  *
- * Zur Session: die entsteht trotzdem, aber nicht durch diesen Controller — `StorefrontSubscriber`
- * startet sie für jeden Storefront-Request. Ausgenommen sind allein die Pfade aus der Core-Liste
- * `RequestTransformer::DOES_NOT_REQUIRE_SALESCHANNEL` (dort steht `/robots.txt`, für Plugins nicht
- * erweiterbar). Ein Set-Cookie hält die Antwort `private`, ein HTTP-Cache-Treffer ist damit in
- * Shopware 6.7 für diese Route nicht erreichbar.
+ * Eine Session entsteht trotzdem, nur nicht durch diesen Controller: `StorefrontSubscriber` startet
+ * sie für jeden Request mit Verkaufskanal. Ausgenommen sind allein die Pfade der privaten Kern-Liste
+ * `RequestTransformer::DOES_NOT_REQUIRE_SALESCHANNEL`, in der `/robots.txt` steht und die ein Plugin
+ * nicht erweitern kann. Dem HTTP-Cache steht das nicht im Weg: Für Routen mit `_httpCache` schaltet
+ * `CacheResponseSubscriber` Symfonys automatisches `private` ab, und `CacheStore` entfernt das
+ * Session-Cookie vor dem Speichern. Deshalb tragen die Antworten ein Cache-Tag je Datei.
  */
 #[Route(defaults: [PlatformRequest::ATTRIBUTE_ROUTE_SCOPE => [StorefrontRouteScope::ID], 'auth_required' => false])]
 final class LlmsTxtController
@@ -79,6 +80,8 @@ final class LlmsTxtController
 
     private function deliver(Request $request, Context $context, string $variant): Response
     {
+        // Die Domain-Kennung setzt der `RequestTransformer`, sobald er den Request einer Domain
+        // zuordnet. Fehlt sie, gibt es kein Dokument dazu, und die Antwort bleibt leer.
         $domainId = $request->attributes->get(SalesChannelRequest::ATTRIBUTE_DOMAIN_ID);
         if (!\is_string($domainId) || $domainId === '') {
             return $this->textResponse('');
@@ -103,8 +106,11 @@ final class LlmsTxtController
     }
 
     /**
-     * Kaltstart: frisch installiert oder neue Domain — einmalig erzeugen, statt eine leere Datei
-     * auszuliefern. Ab dem nächsten Abruf kommt der gespeicherte Stand.
+     * Kaltstart nach der Installation oder für eine neue Domain: einmal erzeugen, statt eine leere
+     * Datei auszuliefern. Ab dem nächsten Abruf kommt der gespeicherte Stand.
+     *
+     * Erzeugt werden beide Fassungen der Domain. Fehler fängt die Methode nicht ab, sie schlagen bis
+     * zum Abruf durch.
      */
     private function generateOnDemand(string $domainId, string $variant, Context $context): ?LlmsDocumentEntity
     {

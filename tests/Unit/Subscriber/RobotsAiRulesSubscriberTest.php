@@ -18,6 +18,12 @@ use Shopware\Storefront\Page\Robots\Struct\RobotsDirectiveType;
 use Shopware\Storefront\Page\Robots\Struct\RobotsUserAgentBlock;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * Prüft, welche KI-Crawler-Blöcke das Plugin in die robots.txt schreibt. Ein Fehler hier sperrt im
+ * schlimmsten Fall Suchcrawler aus, überschreibt eine im Shop gepflegte Regel oder schickt die
+ * KI-Crawler als einzige in alle Filter- und Sortieradressen, weil ihr eigener Block den
+ * Sammelblock samt dessen Schutzregeln ersetzt.
+ */
 final class RobotsAiRulesSubscriberTest extends TestCase
 {
     private const SALES_CHANNEL_ID = 'sales-channel-id';
@@ -31,6 +37,11 @@ final class RobotsAiRulesSubscriberTest extends TestCase
         self::assertSame([], $page->getGlobalUserAgentBlocks());
     }
 
+    /**
+     * Die vier erwarteten Zeilen sind die Spiegelung aus `allowDirectives()`. Der Test liest die
+     * Core-Vorlage nicht mit: deren `Allow: /*referringSalesChannel=` und `Allow: /thumbnail/*?ts=`
+     * (Core 6.7.15.0) fehlen in der Spiegelung, ohne dass er anschlägt.
+     */
     public function testAllowedGroupMirrorsCoreDefaultRules(): void
     {
         $page = $this->page();
@@ -63,7 +74,7 @@ final class RobotsAiRulesSubscriberTest extends TestCase
 
         $this->subscriber($this->enabled(['aiRulesTraining' => 'block']))->onRobotsPageLoaded($this->event($page));
 
-        // Training gesperrt, Suche und Abruf weiter erlaubt.
+        // Nur Training ist gesperrt; Suche und Abruf behalten ihre Freigabe.
         self::assertSame(['Disallow: /'], $this->rendered($page, 'ClaudeBot'));
         self::assertContains('Allow: /', $this->rendered($page, 'OAI-SearchBot'));
         self::assertContains('Allow: /', $this->rendered($page, 'ChatGPT-User'));
@@ -86,6 +97,8 @@ final class RobotsAiRulesSubscriberTest extends TestCase
 
     public function testExistingBlockMatchIsCaseInsensitive(): void
     {
+        // Crawler werten den User-agent ohne Groß- und Kleinschreibung aus; ein zweiter Block
+        // „GPTBot" neben „gptbot" wäre für sie dieselbe Gruppe doppelt.
         $page = $this->page([new RobotsUserAgentBlock('gptbot', [new RobotsDirective(RobotsDirectiveType::DISALLOW, '/')])]);
 
         $this->subscriber($this->enabled())->onRobotsPageLoaded($this->event($page));
@@ -122,6 +135,9 @@ final class RobotsAiRulesSubscriberTest extends TestCase
     }
 
     /**
+     * Fehlende Schlüssel liefern `false` und `''`. Das schaltet die Regeln ab und gilt bei den
+     * Gruppen als „erlauben", wie es der `AiRulesConfigProvider` für leere Werte festlegt.
+     *
      * @param array<string, bool|string> $config
      */
     private function subscriber(array $config): RobotsAiRulesSubscriber

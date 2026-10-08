@@ -9,13 +9,17 @@ use Ruhrcoder\RcAiDiscovery\RcAiDiscovery;
 use Shopware\Core\Framework\Plugin;
 
 /**
- * Plugin-Bootstrap-Eigenschaften, die für Shopware-Lifecycle und CI-Discovery zwingend sind.
+ * Prüft die Plugin-Klasse, über die Shopware das Paket erkennt und installiert, gegen die
+ * Hausregeln. Bricht eine davon, fällt das erst beim Installieren auf: ohne Erbe von `Plugin`
+ * findet Shopware kein Plugin, ein abweichender Namensraum passt nicht mehr zum PSR-4-Präfix der
+ * composer.json, und ohne `plugin.png` steht das Plugin ohne Symbol in der Verwaltung.
  */
 final class RcAiDiscoveryTest extends TestCase
 {
     public function testPluginExtendsShopwarePlugin(): void
     {
-        self::assertTrue(is_subclass_of(RcAiDiscovery::class, Plugin::class));
+        $reflection = new \ReflectionClass(RcAiDiscovery::class);
+        self::assertTrue($reflection->isSubclassOf(Plugin::class), 'Plugin-Klasse muss von Shopwares Plugin erben');
     }
 
     public function testPluginClassIsFinal(): void
@@ -35,7 +39,8 @@ final class RcAiDiscoveryTest extends TestCase
 
     public function testPluginNamespaceFollowsRuhrcoderConvention(): void
     {
-        // Pflicht: Ruhrcoder\Rc{PluginName}\ — niemals RuhrCoder (falsches C) oder ohne Vendor-Präfix.
+        // Composer vergleicht das PSR-4-Präfix `Ruhrcoder\RcAiDiscovery\` mit Groß- und
+        // Kleinschreibung; unter „RuhrCoder" oder ohne Herstellerpräfix fände es die Klasse nicht.
         self::assertSame('Ruhrcoder\\RcAiDiscovery', (new \ReflectionClass(RcAiDiscovery::class))->getNamespaceName());
     }
 

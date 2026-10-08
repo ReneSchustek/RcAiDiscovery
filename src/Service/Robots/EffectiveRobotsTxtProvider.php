@@ -12,11 +12,13 @@ use Symfony\Component\HttpFoundation\Request;
 use Twig\Environment;
 
 /**
- * Ermittelt die tatsächlich ausgelieferte robots.txt eines Hosts — inklusive der Core-Defaults,
- * die nur im Twig-Template stehen (nicht in der Config). Es wird exakt das gerendert, was der
- * Core-RobotsController ausliefert: RobotsPage laden und das über den TemplateFinder aufgelöste
- * Template rendern. Der TemplateFinder (statt eines rohen Renders) berücksichtigt `sw_extends`-
- * Überschreibungen von Plugins/Themes — nur so bleibt der Check deckungsgleich mit der Realität.
+ * Ermittelt die robots.txt eines Hosts so, wie der Kern sie ausliefert, einschließlich der
+ * Vorgaberegeln, die nur in der Twig-Vorlage stehen und in keiner Einstellung.
+ *
+ * Der Weg ist derselbe wie im `RobotsController` des Kerns: `RobotsPage` laden, dann die Vorlage
+ * über den `TemplateFinder` auflösen und rendern. Ein direkter Render der Kern-Vorlage überginge
+ * `sw_extends` aus Plugins und Themes, und die Prüfung zeigte dann eine andere Datei als die
+ * ausgelieferte.
  */
 final class EffectiveRobotsTxtProvider
 {
@@ -30,10 +32,12 @@ final class EffectiveRobotsTxtProvider
     }
 
     /**
-     * Gibt den robots.txt-Text für den Host zurück oder null, wenn kein Host vorliegt.
+     * Gibt den robots.txt-Text für den Host zurück oder `null`, wenn der Host leer ist.
      *
-     * Der Sales-Channel wird als Request-Attribut mitgegeben, damit kanal-spezifische Regeln
-     * (auch die des eigenen KI-Regel-Subscribers) genauso greifen wie im echten Storefront-Abruf.
+     * Der Verkaufskanal reist als Request-Attribut mit, weil `RobotsAiRulesSubscriber` seine
+     * Einstellungen daran festmacht. Ohne ihn griffe dort nur die globale Konfiguration. Der echte
+     * Abruf von `/robots.txt` trägt dieses Attribut nicht: Der Kern löst den Pfad ohne Verkaufskanal
+     * auf (`RequestTransformer::DOES_NOT_REQUIRE_SALESCHANNEL`).
      */
     public function render(string $host, Context $context, ?string $salesChannelId = null): ?string
     {
@@ -41,7 +45,8 @@ final class EffectiveRobotsTxtProvider
             return null;
         }
 
-        // RobotsPageLoader liest den Host aus HTTP_HOST und ermittelt darüber die Domain-Regeln.
+        // `RobotsPageLoader` liest den Host aus `HTTP_HOST` und sucht darüber Domains, Regeln und
+        // Sitemaps; ein künstlicher Request mit diesem Wert genügt.
         $request = new Request();
         $request->server->set('HTTP_HOST', $host);
         if ($salesChannelId !== null) {

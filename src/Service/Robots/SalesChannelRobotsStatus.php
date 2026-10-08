@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAiDiscovery\Service\Robots;
 
 /**
- * Aggregierter robots.txt-KI-Status eines Sales-Channels: pro Crawler ein Status plus Kennzahlen.
+ * Ergebnis der robots.txt-Prüfung eines Verkaufskanals: je Crawler ein Status und die Zahl der
+ * gesperrten und unbekannten. Die Zahlen gehen mit in die JSON-Antwort für andere Abnehmer der
+ * Admin-API; die mitgelieferte Komponente liest sie nicht. `url` ist `null`, wenn der Kanal keine
+ * Domain hat.
  */
 final class SalesChannelRobotsStatus implements \JsonSerializable
 {

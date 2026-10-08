@@ -4,10 +4,12 @@ import './rc-ai-discovery-llms-documents.scss';
 const { Mixin } = Shopware;
 
 /**
- * Zeigt die gespeicherten llms-Dateien mit Stand und Zustand und bietet die drei Aktionen
- * „jetzt aktualisieren", „bearbeiten/speichern" und „neu generieren". Bearbeitete Dateien
- * werden von der geplanten Generierung nicht mehr überschrieben — deshalb ist der Zustand
- * sichtbar und „neu generieren" der bewusste Weg zurück zur Automatik.
+ * Zeigt die gespeicherten llms-Dateien mit Stand und Zustand in der Plugin-Konfiguration und bietet
+ * „Jetzt aktualisieren", „Bearbeiten" mit „Speichern" und „Neu generieren".
+ *
+ * Weder die geplante Aufgabe noch „Jetzt aktualisieren" überschreiben eine bearbeitete Datei. Der
+ * Zustand steht deshalb an jeder Datei, und „Neu generieren" erscheint nur an bearbeiteten als Weg
+ * zurück zur Automatik.
  */
 Shopware.Component.register('rc-ai-discovery-llms-documents', {
     template,
@@ -32,10 +34,16 @@ Shopware.Component.register('rc-ai-discovery-llms-documents', {
     },
 
     methods: {
+        // Der angemeldete HTTP-Client der Verwaltung; seine Basis ist `/api`, die Pfade unten
+        // beginnen deshalb ohne `/api`.
         httpClient() {
             return Shopware.Application.getContainer('init').httpClient;
         },
 
+        /**
+         * Jeder Endpunkt antwortet mit der vollständigen Liste, deshalb übernimmt ein einziger
+         * Weg Ladeanzeige, Liste und Fehlermeldung. Das Ergebnis sagt, ob der Aufruf gelang.
+         */
         async request(call) {
             this.isLoading = true;
 
@@ -116,6 +124,7 @@ Shopware.Component.register('rc-ai-discovery-llms-documents', {
                 : this.$tc('rc-ai-discovery.llmsDocuments.state.auto');
         },
 
+        // Der Server liefert ATOM-Zeitstempel in UTC; angezeigt wird in Ortszeit und Format des Browsers.
         formatDate(value) {
             return value ? new Date(value).toLocaleString() : '';
         },

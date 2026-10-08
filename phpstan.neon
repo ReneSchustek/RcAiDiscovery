@@ -1,3 +1,6 @@
+includes:
+    - vendor/shopwarelabs/phpstan-shopware/rules.neon
+
 parameters:
     level: 8
     paths:
@@ -7,4 +10,30 @@ parameters:
         - vendor
     bootstrapFiles:
         - vendor/autoload.php
-    ignoreErrors: []
+    ignoreErrors:
+        # Der Aufruf steht im **Kopf** der Schleife und läuft genau einmal — es gibt keine Abfrage
+        # je Durchlauf. Die Regel prüft die syntaktische Verschachtelung, nicht den Ablauf.
+        -
+            message: '#EntityRepository method calls are not allowed within loops#'
+            paths:
+                - src/Service/Llms/LlmsDocumentGenerator.php
+                - src/Service/Llms/LlmsDocumentOverview.php
+                - src/Service/Robots/RobotsCheckService.php
+
+        # Das Feld ist ein Wahrheitswert, und sein Leser heißt `isCustom()` — die übliche Form
+        # dafür. Die Regel sucht nur nach `getIsCustom()`.
+        -
+            message: '#The field "isCustom" in the definition .* is protected, but has no getter#'
+            path: src/Core/Content/LlmsDocument/LlmsDocumentEntity.php
+
+        # Ein zeitgesteuerter Lauf hat keine Anfrage und keinen angemeldeten Nutzer, aus dem sich
+        # ein Kontext ableiten ließe. Genau dafür gibt es den Standardkontext.
+        -
+            message: '#Do not use Shopware\\Core\\Framework\\Context::createDefaultContext#'
+            path: src/ScheduledTask/LlmsGenerateTaskHandler.php
+
+        # Dasselbe im Test: Ein aufgebauter Nutzerkontext täuschte dort eine Abhängigkeit vor, die
+        # der Test gar nicht hat.
+        -
+            message: '#Do not use Shopware\\Core\\Framework\\Context::createDefaultContext#'
+            path: tests/*

@@ -13,7 +13,12 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Admin-API rund um die gespeicherten llms-Dateien: auflisten, neu erzeugen, Inhalt pflegen.
- * Wird von der Komponente in der Plugin-Konfiguration bedient.
+ * Aufrufer ist die Komponente `rc-ai-discovery-llms-documents` in der Plugin-Konfiguration.
+ *
+ * Jede Aktion antwortet mit der vollständigen, frischen Liste. Die Komponente ersetzt damit ihren
+ * Stand in einem Zug und braucht keinen zweiten Abruf. Gelesen wird mit `sales_channel:read`,
+ * geschrieben mit `sales_channel:update`: Die Dateien hängen an den Domains eines Verkaufskanals,
+ * ein eigenes Privileg brächte nur eine weitere Rolle zum Pflegen.
  */
 #[Route(defaults: ['_routeScope' => ['api']])]
 final class LlmsDocumentController
@@ -56,6 +61,8 @@ final class LlmsDocumentController
     )]
     public function save(string $documentId, Request $request, Context $context): JsonResponse
     {
+        // Der JSON-Rumpf liegt nach Shopwares Request-Umwandlung in `request`. Fehlt `content` oder
+        // ist es kein Text, wird ein leerer Inhalt gespeichert.
         $content = $request->request->get('content');
         $this->documentGenerator->saveCustomContent($documentId, \is_string($content) ? $content : '', $context);
 

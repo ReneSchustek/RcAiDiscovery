@@ -7,8 +7,11 @@ namespace Ruhrcoder\RcAiDiscovery\Service;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 /**
- * Liest die Admin-Overrides für die llms.txt aus der Plugin-Konfiguration des Sales-Channels
- * und normalisiert sie, damit der Generator nur noch fertige Werte verarbeitet (SoC).
+ * Liest die Vorgaben für die llms-Dateien aus der Plugin-Konfiguration des Verkaufskanals und
+ * normalisiert sie, damit der Generator nur fertige Werte verarbeitet.
+ *
+ * Gelesen wird beim Generieren. Eine geänderte Einstellung erscheint deshalb erst mit dem nächsten
+ * Lauf der geplanten Aufgabe oder nach „Jetzt aktualisieren" in der Datei.
  */
 final class LlmsTxtConfigProvider
 {
@@ -37,8 +40,8 @@ final class LlmsTxtConfigProvider
     }
 
     /**
-     * Titel und Kurzbeschreibung stehen in einer einzeiligen Markdown-Struktur („# …", „> …") —
-     * Zeilenumbrüche würden sie zerbrechen, deshalb wird der Wert zu einer Zeile verdichtet.
+     * Titel und Kurzbeschreibung stehen in einzeiligen Markdown-Formen („# …", „> …"). Ein
+     * Zeilenumbruch würde sie zerbrechen, deshalb wird jeder Leerraum zu einem Leerzeichen.
      */
     private function singleLineOrNull(string $value): ?string
     {
@@ -48,8 +51,8 @@ final class LlmsTxtConfigProvider
     }
 
     /**
-     * Der Zusatz-Inhalt ist bewusst gestalteter Markdown des Betreibers: nur Zeilenenden
-     * vereinheitlichen und den Rand trimmen, die Struktur bleibt unangetastet.
+     * Der Zusatz-Inhalt ist vom Betreiber gestalteter Markdown. Nur Zeilenenden werden vereinheitlicht
+     * und der Rand gekürzt, Zeilen und Einrückung bleiben, wie sie sind.
      */
     private function markdownBlockOrNull(string $value): ?string
     {

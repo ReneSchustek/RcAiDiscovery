@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAiDiscovery\Service\Robots;
 
 /**
- * Die Admin-Entscheidung, welche KI-Zugriffe die robots.txt zulassen soll.
+ * Die Entscheidung des Betreibers, welche KI-Zugriffe die robots.txt zulassen soll, je
+ * Crawler-Gruppe.
  */
 final class AiRulesConfig
 {
@@ -23,14 +24,18 @@ final class AiRulesConfig
     }
 
     /**
-     * Solange nichts konfiguriert ist, schreibt das Plugin keine Regeln — die robots.txt bleibt
-     * exakt die des Shops.
+     * Solange der Schalter `aiRulesEnabled` aus ist, schreibt das Plugin keine Regeln, und die
+     * robots.txt bleibt genau die des Shops.
      */
     public static function disabled(): self
     {
         return new self(false, []);
     }
 
+    /**
+     * Eine Gruppe ohne Eintrag gilt als erlaubt, aus demselben Grund wie in
+     * `AiRulesConfigProvider::mode()`.
+     */
     public function allows(string $group): bool
     {
         return ($this->modes[$group] ?? self::MODE_ALLOW) === self::MODE_ALLOW;

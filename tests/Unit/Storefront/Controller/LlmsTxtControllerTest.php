@@ -20,6 +20,11 @@ use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelDomain\SalesChannelD
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelDomain\SalesChannelDomainEntity;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * Prüft die Auslieferung von `/llms.txt` und `/llms-full.txt` aus dem gespeicherten Dokument.
+ * Bräche sie, bekämen KI-Crawler eine leere oder die falsche Datei, und der HTTP-Cache würde
+ * unter dem falschen Schlagwort abgelegt und nach einer Neuerzeugung nicht mehr geleert.
+ */
 final class LlmsTxtControllerTest extends TestCase
 {
     private const DOMAIN_ID = '0191aaaabbbbccccddddeeeeffff0001';
@@ -35,13 +40,15 @@ final class LlmsTxtControllerTest extends TestCase
     }
 
     /**
-     * Kaltstart: fehlt das Dokument, wird es einmalig erzeugt statt eine leere Datei auszuliefern.
+     * Nach der Installation oder für eine neue Domain gibt es noch kein Dokument. Der erste Abruf
+     * erzeugt es, statt eine leere Datei auszuliefern.
      */
     public function testGeneratesOnDemandWhenDocumentIsMissing(): void
     {
         $generator = $this->createMock(LlmsDocumentGenerator::class);
         $generator->expects(self::once())->method('generateForDomain');
 
+        // Die erste Suche findet nichts, die zweite nach dem Erzeugen das frische Dokument.
         $documentRepository = $this->createMock(EntityRepository::class);
         $documentRepository->method('search')->willReturnOnConsecutiveCalls(
             $this->searchResult(new LlmsDocumentCollection()),
@@ -62,6 +69,7 @@ final class LlmsTxtControllerTest extends TestCase
 
     public function testEmptyResponseWithoutDomainAttribute(): void
     {
+        // Das Repository hält ein Dokument bereit; ohne Domain darf der Controller trotzdem keines nehmen.
         $controller = $this->controller([$this->document("# Gespeichert\n")]);
 
         $response = $controller->llmsTxt(new Request(), Context::createDefaultContext());
@@ -69,6 +77,10 @@ final class LlmsTxtControllerTest extends TestCase
         self::assertSame('', $response->getContent());
     }
 
+    /**
+     * Das Repository-Double liefert jedes Dokument ohne Rücksicht auf die Suchkriterien. Dass die lange
+     * Variante angefragt wird, belegt deshalb nur das Cache-Schlagwort, nicht der Inhalt.
+     */
     public function testFullVariantIsRequested(): void
     {
         $collector = $this->createMock(CacheTagCollector::class);

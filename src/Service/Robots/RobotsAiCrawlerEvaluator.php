@@ -8,12 +8,15 @@ use Shopware\Storefront\Page\Robots\Parser\ParsedRobots;
 use Shopware\Storefront\Page\Robots\Struct\RobotsDirectiveType;
 
 /**
- * Bewertet für jeden KI-Crawler, ob er die Startseite (Pfad „/") crawlen darf.
+ * Bewertet für jeden KI-Crawler, ob er die Startseite, also den Pfad `/`, abrufen darf.
  *
- * Der Core-Parser liefert nur die geparsten Blöcke, aber keine Allow/Disallow-Entscheidung —
- * diese Matching-Logik ist deshalb hier implementiert: die auf den Crawler anwendbaren Direktiven
- * bestimmen (exakter, case-insensitiver User-Agent-Match; sonst der „*"-Block) und den Pfad „/"
- * per Longest-Match nach robots.txt-Semantik (inkl. `*`/`$`-Wildcards) auswerten.
+ * Der Parser des Kerns liefert nur die Blöcke, keine Entscheidung. Die Zuordnung steht deshalb hier,
+ * nach den Regeln von RFC 9309: Anwendbar sind alle Blöcke mit exakt passendem User-Agent ohne
+ * Rücksicht auf Groß- und Kleinschreibung, nur wenn es keinen gibt, die Blöcke für `*`. Über den
+ * Pfad entscheidet die längste passende Regel, Platzhalter `*` und Endanker `$` eingeschlossen.
+ *
+ * Geprüft wird nur `/`. Das reicht für die Frage „darf der Bot überhaupt in den Shop", nicht für
+ * einzelne gesperrte Bereiche.
  */
 final class RobotsAiCrawlerEvaluator
 {
@@ -44,7 +47,7 @@ final class RobotsAiCrawlerEvaluator
     {
         $resolution = $this->resolveDirectives($crawler->token, $parsed);
 
-        // robots.txt trifft keine Aussage zu diesem Crawler → standardmäßig erlaubt.
+        // Sagt die robots.txt nichts zu diesem Crawler, darf er alles.
         if (!$resolution->hasBlock) {
             return $this->status($crawler, CrawlerStatus::ALLOWED, CrawlerStatus::REASON_ALLOWED_DEFAULT);
         }
@@ -66,8 +69,8 @@ final class RobotsAiCrawlerEvaluator
     }
 
     /**
-     * Sammelt die anwendbaren Pfad-Direktiven: alle exakt passenden User-Agent-Blöcke (case-insensitiv)
-     * werden zusammengeführt; gibt es keinen, greifen die „*"-Blöcke.
+     * Sammelt die anwendbaren Pfad-Direktiven. Mehrere exakt passende Blöcke werden zusammengeführt,
+     * ebenso mehrere `*`-Blöcke. Ein eigener Block verdrängt `*` ganz; es wird nicht gemischt.
      */
     private function resolveDirectives(string $token, ParsedRobots $parsed): DirectiveResolution
     {
@@ -98,8 +101,8 @@ final class RobotsAiCrawlerEvaluator
     }
 
     /**
-     * Longest-Match für den Pfad „/": längstes tatsächlich passendes Muster gewinnt, bei Gleichstand Allow.
-     * Leeres Disallow („Disallow:") bedeutet „alles erlaubt".
+     * Das längste passende Muster gewinnt, bei gleicher Länge `Allow`, wie RFC 9309 es vorsieht.
+     * Gemessen wird die Länge des Musters samt `*` und `$`. Passt gar keine Regel, ist der Pfad frei.
      *
      * @param list<\Shopware\Storefront\Page\Robots\Struct\RobotsDirective> $directives
      */
@@ -124,7 +127,8 @@ final class RobotsAiCrawlerEvaluator
             return true;
         }
 
-        // Nicht-leeres Disallow blockiert; leeres Disallow („Disallow:") erlaubt alles.
+        // Ein leeres `Disallow:` passt nach `matchesRoot()` immer, sperrt aber nichts. Gewinnt es mit
+        // Länge 0, ist der Pfad frei.
         if ($bestType === RobotsDirectiveType::DISALLOW) {
             return $bestLength === 0;
         }
@@ -133,8 +137,8 @@ final class RobotsAiCrawlerEvaluator
     }
 
     /**
-     * Prüft nach robots.txt-Semantik, ob ein Pfad-Muster den Root-Pfad „/" matcht.
-     * `*` steht für eine beliebige Zeichenfolge, ein abschließendes `$` verankert das URL-Ende.
+     * Prüft, ob ein Muster auf `/` passt. `*` steht für eine beliebige Zeichenfolge, ein `$` am Ende
+     * verankert das Ende der Adresse; ohne `$` reicht ein passender Anfang.
      */
     private function matchesRoot(string $pattern): bool
     {

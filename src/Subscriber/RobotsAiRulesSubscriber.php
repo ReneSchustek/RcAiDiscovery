@@ -17,11 +17,11 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Ergänzt die robots.txt um KI-Crawler-Regeln, sobald der Betreiber sie eingeschaltet hat.
  *
- * Der Core rendert `page.globalUserAgentBlocks` bereits im eigenen Template — deshalb wird hier
- * nur die Seite angereichert, statt das Template per `sw_extends` zu überschreiben. Das vermeidet
- * Kollisionen mit anderen Plugins und wirkt automatisch auch im KI-Check, der dasselbe Template
- * rendert. Im Staging-Modus greift nichts davon, weil der Core die globalen Blöcke dort gar nicht
- * ausgibt (`Disallow: /` für alle).
+ * Die Kern-Vorlage gibt `page.globalUserAgentBlocks` schon aus. Der Subscriber hängt seine Blöcke
+ * deshalb an die geladene Seite, statt die Vorlage per `sw_extends` zu überschreiben: Das kollidiert
+ * mit keinem anderen Plugin, das dieselbe Vorlage erweitert, und wirkt ohne Zutun auch in der
+ * Prüfung, die dieselbe Seite lädt. Im Staging-Modus bleibt es wirkungslos, weil der Kern dort nur
+ * `Disallow: /` ausgibt und die globalen Blöcke weglässt.
  */
 final class RobotsAiRulesSubscriber implements EventSubscriberInterface
 {
@@ -50,12 +50,13 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
         $blocks = $page->getGlobalUserAgentBlocks();
         $existing = $this->userAgentsOf($blocks);
 
+        // Die Blöcke landen hinter denen des Shops, in der Reihenfolge der Gruppen wie in der Anzeige.
         foreach ([AiCrawlerCatalog::GROUP_SEARCH, AiCrawlerCatalog::GROUP_FETCH, AiCrawlerCatalog::GROUP_TRAINING] as $group) {
             $allow = $config->allows($group);
 
             foreach ($this->catalog->writableOfGroup($group) as $crawler) {
-                // Eine im Shop gepflegte Regel ist die bewusste Entscheidung des Betreibers und
-                // hat Vorrang vor der des Plugins.
+                // Ein Block, den der Betreiber in den robots.txt-Regeln des Shops selbst angelegt hat,
+                // ist seine Entscheidung und geht der des Plugins vor.
                 if (isset($existing[mb_strtolower($crawler->token)])) {
                     continue;
                 }
@@ -73,9 +74,13 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * Ein eigener User-agent-Block ersetzt für diesen Bot den Sammelblock vollständig — inklusive
-     * der Core-Schutzregeln. Sie werden deshalb mitgespiegelt, sonst liefen die KI-Crawler als
-     * einzige in sämtliche Filter- und Sortier-URLs.
+     * Ein eigener User-agent-Block ersetzt für diesen Bot den Block `*` vollständig, samt der
+     * Vorgaberegeln des Kerns. Ein Teil davon wird deshalb hier wiederholt: die Sperre für Adressen
+     * mit Parametern und die Ausnahmen für Theme- und Mediendateien. Ohne sie liefen die KI-Crawler
+     * als einzige in sämtliche Filter- und Sortieradressen.
+     *
+     * Die Kern-Vorlage `robots.txt.twig` kennt außerdem Ausnahmen für `referringSalesChannel=` und
+     * `/thumbnail/`; die stehen hier nicht.
      *
      * @return list<RobotsDirective>
      */
@@ -98,6 +103,9 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
     }
 
     /**
+     * Klein geschrieben, weil User-Agents in der robots.txt ohne Rücksicht auf Groß- und
+     * Kleinschreibung verglichen werden.
+     *
      * @param list<RobotsUserAgentBlock> $blocks
      *
      * @return array<string, true>
@@ -113,8 +121,9 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * Der Storefront-Request trägt den Sales-Channel als Attribut; fehlt es (etwa beim internen
-     * Rendern für den Admin-Check ohne Kanal-Bezug), greift die globale Konfiguration.
+     * Den Verkaufskanal setzt nur die Prüfung in der Verwaltung als Attribut. Der echte Abruf von
+     * `/robots.txt` hat keinen, weil der Kern diesen Pfad ohne Verkaufskanal auflöst; dort greift
+     * die globale Konfiguration.
      */
     private function salesChannelId(RobotsPageLoadedEvent $event): ?string
     {

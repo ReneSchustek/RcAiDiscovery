@@ -5,28 +5,30 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAiDiscovery\Service\Robots;
 
 /**
- * Kuratierter Katalog der KI-Crawler (Stand 2026-07-27, aus der Anbieter-Dokumentation).
+ * Kuratierter Katalog der KI-Crawler, die das Plugin prüft und für die es Regeln schreibt.
+ * Beleg: Crawler-Dokumentation der jeweiligen Anbieter, abgerufen am 27.07.2026.
  *
- * Die Bots sind nach ihrem Zweck gruppiert, weil sie für einen Shop unterschiedlichen Wert haben:
- * Suche und Abruf bringen Sichtbarkeit (der Shop wird zitiert und verlinkt), Training nicht.
+ * Die Bots sind nach Zweck gruppiert, weil sie für einen Shop unterschiedlich viel wert sind. Suche
+ * und Abruf bringen Sichtbarkeit, weil der Shop zitiert und verlinkt wird; Training bringt keine.
  * Nur so lässt sich „gefunden werden" getrennt von „Inhalte fürs Modelltraining abgeben" regeln.
  *
- * Wartung: neue Tokens erscheinen mehrmals pro Jahr — hier ergänzen, der Rest zieht nach.
+ * Anbieter führen mehrmals im Jahr neue Tokens ein. Ein neuer Eintrag in `build()` genügt, Prüfung,
+ * Regeln und Anzeige richten sich danach.
  */
 final class AiCrawlerCatalog
 {
     /**
-     * Indexieren für KI-Antworten — der Weg, über den ein Shop zitiert wird.
+     * Indexieren für KI-Antworten; über sie wird ein Shop zitiert.
      */
     public const GROUP_SEARCH = 'search';
 
     /**
-     * Holen eine Seite, weil ein Nutzer gerade danach fragt — direkter Kundenkontakt.
+     * Holen eine Seite, weil ein Nutzer gerade danach fragt. Das ist direkter Kundenkontakt.
      */
     public const GROUP_FETCH = 'fetch';
 
     /**
-     * Sammeln Material für das Modelltraining — keine Sichtbarkeit für den Shop.
+     * Sammeln Material für das Modelltraining und bringen dem Shop keine Sichtbarkeit.
      */
     public const GROUP_TRAINING = 'training';
 
@@ -37,11 +39,15 @@ final class AiCrawlerCatalog
     public const NOTE_LEGACY_TOKEN = 'legacy_token';
 
     /**
-     * Trägt zugleich die klassische Suchmaschine — eine eigene Regel würde diese mitregeln.
+     * Derselbe Bot trägt auch die klassische Suchmaschine. Eine eigene Regel würde sie mitregeln,
+     * deshalb wird er nur ausgewertet.
      */
     public const NOTE_DUAL_PURPOSE = 'dual_purpose';
 
     /**
+     * Beim ersten Zugriff gebaut und danach wiederverwendet; die Prüfung fragt den Katalog je
+     * Verkaufskanal erneut ab.
+     *
      * @var list<AiCrawler>|null
      */
     private ?array $crawlers = null;
@@ -72,10 +78,12 @@ final class AiCrawlerCatalog
      */
     public function tokens(): array
     {
-        return array_values(array_map(static fn (AiCrawler $crawler): string => $crawler->token, $this->all()));
+        return array_map(static fn (AiCrawler $crawler): string => $crawler->token, $this->all());
     }
 
     /**
+     * Die Reihenfolge innerhalb einer Gruppe ist die der Anzeige in der Verwaltung.
+     *
      * @return list<AiCrawler>
      */
     private function build(): array

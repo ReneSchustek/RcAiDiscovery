@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAiDiscovery\Service\Robots;
 
 /**
- * Status eines einzelnen KI-Crawlers gegen die robots.txt eines Sales-Channels.
+ * Ergebnis für einen KI-Crawler gegen die robots.txt eines Verkaufskanals.
  *
- * Der Grund wird als sprachneutraler Code geliefert (kein fertiger Satz), damit die
- * Admin-Oberfläche ihn übersetzen kann (i18n).
+ * Grund und Hinweis kommen als sprachneutrale Codes, weil die Verwaltung sie über ihre Textbausteine
+ * in die Sprache des Benutzers übersetzt.
  */
 final class CrawlerStatus implements \JsonSerializable
 {
@@ -18,7 +18,9 @@ final class CrawlerStatus implements \JsonSerializable
 
     public const UNKNOWN = 'unknown';
 
-    // Grund-Codes (werden im Admin per Snippet übersetzt).
+    /**
+     * Kein Block passt, nicht einmal `*`; ohne Aussage gilt ein Crawler als erlaubt.
+     */
     public const REASON_ALLOWED_DEFAULT = 'allowed_default';
 
     public const REASON_ALLOWED_OWN = 'allowed_own';
@@ -29,6 +31,8 @@ final class CrawlerStatus implements \JsonSerializable
 
     public const REASON_BLOCKED_WILDCARD = 'blocked_wildcard';
 
+    // Mit diesen vier Gründen steht der Status auf `UNKNOWN`, weil die Prüfung nicht bis zur
+    // Auswertung kam.
     public const REASON_NO_DOMAIN = 'no_domain';
 
     public const REASON_HOST_UNREADABLE = 'host_unreadable';
@@ -38,7 +42,10 @@ final class CrawlerStatus implements \JsonSerializable
     public const REASON_CHECK_FAILED = 'check_failed';
 
     /**
-     * @param string      $group    Gruppe aus dem Katalog (Suche, Abruf, Training)
+     * `$status` ist eine der Konstanten `ALLOWED`, `BLOCKED`, `UNKNOWN`, `$reasonCode` eine der
+     * `REASON_*`-Konstanten.
+     *
+     * @param string      $group   Gruppe aus dem Katalog (Suche, Abruf, Training)
      * @param string|null $noteCode zusätzlicher Hinweis für die Anzeige, ebenfalls sprachneutral
      */
     public function __construct(

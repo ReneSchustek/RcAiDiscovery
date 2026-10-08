@@ -1,5 +1,6 @@
-// Wie in der Robots-Komponente: feste Hex-Werte, weil Shopware die $color-*-Variablen im
-// Plugin-Admin-Scope nicht bereitstellt.
+// Feste Hex-Werte wie in der Robots-Komponente: Die `$color-*`-Variablen des Kerns kommen nicht von
+// selbst in die Stylesheets eines Plugins. Grau und Grün entsprechen `$color-gray-900` und
+// `$color-emerald-500`; das Orange für „bearbeitet" hat im Kern keine Entsprechung.
 $rc-ai-muted: #758ca3;
 $rc-ai-custom: #f0a13d;
 $rc-ai-auto: #37d046;
@@ -33,6 +34,7 @@ $rc-ai-auto: #37d046;
 
     &__state {
         padding: 2px 8px;
+        // Mindestens die halbe Höhe der kleinen Plakette, damit beide Enden rund werden.
         border-radius: 10px;
         font-size: 11px;
         color: #ffffff;

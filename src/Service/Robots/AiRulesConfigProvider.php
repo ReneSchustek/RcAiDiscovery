@@ -7,7 +7,8 @@ namespace Ruhrcoder\RcAiDiscovery\Service\Robots;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 /**
- * Liest die KI-Regel-Einstellungen aus der Plugin-Konfiguration des Sales-Channels.
+ * Liest die KI-Regel-Einstellungen aus der Plugin-Konfiguration. Mit Kanal gelten dessen Werte samt
+ * Vererbung aus der globalen Ebene, ohne Kanal nur die globalen.
  */
 final class AiRulesConfigProvider
 {
@@ -38,8 +39,8 @@ final class AiRulesConfigProvider
     }
 
     /**
-     * Unbekannte oder leere Werte gelten als „erlauben" — der Zweck des Plugins ist Sichtbarkeit,
-     * eine stille Sperre wäre die überraschende Auslegung.
+     * Unbekannte oder leere Werte gelten als „erlauben". Der Zweck des Plugins ist Sichtbarkeit, eine
+     * stille Sperre wäre die überraschende Auslegung.
      */
     private function mode(string $configured): string
     {

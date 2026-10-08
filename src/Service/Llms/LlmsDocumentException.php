@@ -8,8 +8,8 @@ use Shopware\Core\Framework\HttpException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Fehler rund um die gespeicherten llms-Dokumente. Als HttpException, damit die Admin-API
- * einen sprechenden Fehlercode und den passenden Statuscode liefert.
+ * Fehler rund um die gespeicherten llms-Dokumente. Als `HttpException` gibt die Admin-API sie mit
+ * Statuscode 404 und einem eigenen Fehlercode weiter statt als allgemeinen Serverfehler.
  */
 final class LlmsDocumentException extends HttpException
 {

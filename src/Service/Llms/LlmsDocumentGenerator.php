@@ -29,15 +29,18 @@ use Twig\Environment;
 /**
  * Erzeugt die llms-Dateien und speichert sie je Sales-Channel-Domain ab.
  *
- * Der gespeicherte Text ist auslieferungsfertig: die SEO-Platzhalter sind bereits durch absolute
- * URLs ersetzt. Deshalb braucht die Storefront-Route beim Abruf keinen Sales-Channel-Kontext mehr
- * — und ohne den entsteht dort auch keine Session.
+ * Der gespeicherte Text ist auslieferungsfertig, die SEO-Platzhalter sind schon durch absolute
+ * Adressen ersetzt. Die Storefront-Route liest deshalb nur einen Datensatz und braucht weder einen
+ * Verkaufskanal-Kontext noch die Kategorie-Abfragen. Den Kontext baut nur die Generierung selbst.
  *
- * Bewusst nicht `final`: der Dienst wird von der Storefront-Route wie vom Admin genutzt und muss
- * für deren Tests ersetzbar bleiben (und ist so auch dekorierbar).
+ * Die Klasse ist nicht `final`, weil Storefront-Route und Admin-API sie nutzen und ihre Tests sie
+ * ersetzen müssen. Ohne Schnittstelle ist sie nur so auch dekorierbar.
  */
 class LlmsDocumentGenerator
 {
+    /**
+     * Wird über den `TemplateFinder` aufgelöst, damit ein Theme den Block der Vorlage erweitern kann.
+     */
     private const TEMPLATE = '@RcAiDiscovery/storefront/page/llms/llms.txt.twig';
 
     /**
@@ -59,9 +62,10 @@ class LlmsDocumentGenerator
     }
 
     /**
-     * Erzeugt die Dateien aller aktiven Storefront-Domains.
+     * Erzeugt die Dateien aller Domains aktiver Storefront-Kanäle. Scheitert eine Domain, wird das
+     * protokolliert und die nächste bearbeitet.
      *
-     * @param bool $force true = auch im Admin bearbeitete Dokumente überschreiben
+     * @param bool $force true = auch in der Verwaltung bearbeitete Dokumente überschreiben
      *
      * @return int Anzahl geschriebener Dokumente
      */
@@ -85,6 +89,10 @@ class LlmsDocumentGenerator
     }
 
     /**
+     * Schreibt Kurz- und Langfassung einer Domain. Mit `$force` werden auch bearbeitete Dokumente
+     * überschrieben, und zwar beide Fassungen. Fehler fängt die Methode nicht ab; das übernimmt
+     * `generateAll()`, für den Einzelaufruf der Aufrufer.
+     *
      * @return int Anzahl geschriebener Dokumente dieser Domain
      */
     public function generateForDomain(SalesChannelDomainEntity $domain, Context $context, bool $force = false): int
@@ -96,14 +104,17 @@ class LlmsDocumentGenerator
         foreach ([LlmsDocumentDefinition::VARIANT_SHORT, LlmsDocumentDefinition::VARIANT_FULL] as $variant) {
             $document = $existing[$variant] ?? null;
 
-            // Redaktionell bearbeitete Dokumente bleiben stehen — nur ein bewusstes
-            // „neu generieren" (force) setzt sie zurück.
+            // Redaktionell bearbeitete Dokumente bleiben stehen. Nur `force` setzt sie zurück.
             if (!$force && $document !== null && $document->isCustom()) {
                 continue;
             }
 
+            // Der Kontext entsteht erst bei Bedarf und höchstens einmal je Domain. Sind beide
+            // Fassungen bearbeitet, kostet die Domain damit keinen Kontextaufbau.
             $salesChannelContext ??= $this->createSalesChannelContext($domain);
 
+            // Die vorhandene Kennung macht den Upsert zum Update; eine neue liefe in den eindeutigen
+            // Schlüssel auf Domain und Variante.
             $payload[] = [
                 'id' => $document?->getId() ?? Uuid::randomHex(),
                 'salesChannelDomainId' => $domain->getId(),
@@ -125,8 +136,9 @@ class LlmsDocumentGenerator
     }
 
     /**
-     * Speichert einen im Admin bearbeiteten Inhalt; das Dokument gilt danach als redaktionell
-     * gepflegt und wird von der geplanten Generierung nicht mehr angefasst.
+     * Speichert einen in der Verwaltung bearbeiteten Inhalt. Das Dokument gilt danach als
+     * redaktionell gepflegt, und Generierungen ohne `force` lassen es stehen. Eine unbekannte
+     * Kennung endet in `LlmsDocumentException::documentNotFound()`.
      */
     public function saveCustomContent(string $documentId, string $content, Context $context): void
     {
@@ -135,6 +147,8 @@ class LlmsDocumentGenerator
             throw LlmsDocumentException::documentNotFound($documentId);
         }
 
+        // Zeilenenden aus dem Browser vereinheitlichen und genau einen Zeilenumbruch ans Ende setzen,
+        // so wie ihn auch der generierte Text trägt.
         $this->documentRepository->update([[
             'id' => $documentId,
             'content' => rtrim(str_replace(["\r\n", "\r"], "\n", $content)) . "\n",
@@ -146,7 +160,10 @@ class LlmsDocumentGenerator
     }
 
     /**
-     * Verwirft die Bearbeitung eines Dokuments und stellt den automatischen Stand wieder her.
+     * Verwirft die Bearbeitung und stellt den automatischen Stand wieder her. Über
+     * `generateForDomain()` mit `force` trifft das beide Fassungen der Domain, nicht nur das
+     * angegebene Dokument. Fehlen Dokument oder Domain, endet der Aufruf in einer
+     * `LlmsDocumentException` mit Statuscode 404.
      */
     public function regenerate(string $documentId, Context $context): void
     {
@@ -196,7 +213,8 @@ class LlmsDocumentGenerator
     }
 
     /**
-     * Baut den Kontext ohne Request und ohne Session — die Generierung läuft im Hintergrund.
+     * Baut einen Gastkontext in Sprache und Währung der Domain, ohne Request und ohne Session, weil
+     * die Generierung auch in der geplanten Aufgabe läuft. Der Zufallstoken gehört zu keinem Besucher.
      */
     private function createSalesChannelContext(SalesChannelDomainEntity $domain): SalesChannelContext
     {
@@ -212,8 +230,9 @@ class LlmsDocumentGenerator
     }
 
     /**
-     * Rendert über das Plugin-Template (Erweiterungspunkt für Themes) und ersetzt anschließend die
-     * SEO-Platzhalter durch absolute URLs der Domain.
+     * Rendert über die Plugin-Vorlage und ersetzt danach die SEO-Platzhalter durch absolute Adressen
+     * der Domain. Die Reihenfolge trägt: Ein Theme, das den Block erweitert, darf selbst Platzhalter
+     * einsetzen, und auch die werden noch ersetzt.
      */
     private function renderContent(
         SalesChannelDomainEntity $domain,

@@ -6,6 +6,7 @@ namespace Ruhrcoder\RcAiDiscovery\Tests\Unit\Service\Llms;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentCollection;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentDefinition;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentEntity;
@@ -30,6 +31,11 @@ use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Twig\Environment;
 
+/**
+ * Prüft, wie die llms-Dokumente je Domain erzeugt, gespeichert und im Cache freigegeben werden.
+ * Bräche das, überschriebe die geplante Aufgabe redaktionell gepflegte Texte, legte Dubletten an,
+ * ließe veraltete Fassungen im HTTP-Cache stehen oder bräche bei einer kaputten Domain für alle ab.
+ */
 final class LlmsDocumentGeneratorTest extends TestCase
 {
     private const DOMAIN_ID = '0191aaaabbbbccccddddeeeeffff0001';
@@ -124,7 +130,8 @@ final class LlmsDocumentGeneratorTest extends TestCase
     }
 
     /**
-     * Eine kaputte Domain darf die übrigen nicht mit ausfallen lassen.
+     * Eine kaputte Domain darf die übrigen nicht mit ausfallen lassen. Sie steht deshalb vorn: ohne
+     * Fehlerbehandlung endete der Lauf, bevor die gesunde Domain an der Reihe ist.
      */
     public function testFailingDomainDoesNotStopTheOthers(): void
     {
@@ -136,6 +143,7 @@ final class LlmsDocumentGeneratorTest extends TestCase
 
         $written = $generator->generateAll(Context::createDefaultContext());
 
+        // Zwei sind die beiden Varianten der gesunden Domain.
         self::assertSame(2, $written, 'Die zweite Domain wird trotz Fehler der ersten geschrieben.');
     }
 
@@ -256,7 +264,7 @@ final class LlmsDocumentGeneratorTest extends TestCase
         $categoryRepository = $this->createMock(SalesChannelRepository::class);
         $categoryRepository->method('search')->willReturn($this->searchResult(new CategoryCollection()));
 
-        return new LlmsTxtGenerator($systemConfig, $categoryRepository, $this->seoUrlReplacer());
+        return new LlmsTxtGenerator($systemConfig, $categoryRepository, $this->seoUrlReplacer(), new NullLogger());
     }
 
     private function emptySystemConfig(): SystemConfigService
@@ -323,6 +331,8 @@ final class LlmsDocumentGeneratorTest extends TestCase
     private function document(string $variant, bool $isCustom): LlmsDocumentEntity
     {
         $document = new LlmsDocumentEntity();
+        // Je Variante eine eigene Kennung, damit ein ID-Vergleich nicht zufällig das Dokument der
+        // anderen Variante trifft.
         $document->setId('0191aaaabbbbccccddddeeeeffff001' . ($variant === LlmsDocumentDefinition::VARIANT_FULL ? '1' : '2'));
         $document->setSalesChannelDomainId(self::DOMAIN_ID);
         $document->setVariant($variant);

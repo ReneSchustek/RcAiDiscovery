@@ -4,10 +4,10 @@ import './rc-ai-discovery-robots-status.scss';
 const { Mixin } = Shopware;
 
 /**
- * Zeigt in der Plugin-Konfiguration pro Storefront-Sales-Channel grün/rot an, ob die relevanten
- * KI-Crawler durch die robots.txt zugelassen sind. Wird als <component> in der config.xml gerendert
- * und ruft den Admin-API-Endpoint _action/rc-ai-discovery/robots-check auf. Statusgründe kommen als
- * sprachneutrale Codes vom Backend und werden hier per Snippet übersetzt.
+ * Zeigt in der Plugin-Konfiguration je Storefront-Kanal, welche KI-Crawler die robots.txt zulässt:
+ * grün erlaubt, rot gesperrt, grau unbekannt. Eingebunden als `<component>` in der `config.xml`,
+ * Daten von `_action/rc-ai-discovery/robots-check`. Gründe und Hinweise kommen als sprachneutrale
+ * Codes und werden hier über die Textbausteine übersetzt.
  */
 Shopware.Component.register('rc-ai-discovery-robots-status', {
     template,
@@ -33,8 +33,8 @@ Shopware.Component.register('rc-ai-discovery-robots-status', {
         async load() {
             this.isLoading = true;
 
-            // Der authentifizierte Admin-HTTP-Client aus dem init-Container; baseURL = /api,
-            // daher relativer Pfad ohne führendes /api.
+            // Der angemeldete HTTP-Client der Verwaltung; seine Basis ist `/api`, der Pfad beginnt
+            // deshalb ohne `/api`.
             const httpClient = Shopware.Application.getContainer('init').httpClient;
 
             try {
@@ -50,8 +50,8 @@ Shopware.Component.register('rc-ai-discovery-robots-status', {
         },
 
         /**
-         * Gruppiert die Crawler nach ihrem Zweck (Suche, Abruf, Training) in fester Reihenfolge —
-         * eine ungruppierte Liste aus rund 25 Einträgen wäre nicht mehr lesbar.
+         * Gruppiert die Crawler nach Zweck in der festen Reihenfolge Suche, Abruf, Training. Ungruppiert
+         * stünde der ganze Katalog, derzeit 28 Einträge, in einer Liste. Leere Gruppen fallen weg.
          */
         groupsOf(crawlers) {
             return ['search', 'fetch', 'training']
@@ -78,6 +78,8 @@ Shopware.Component.register('rc-ai-discovery-robots-status', {
             return noteCode ? this.$tc(`rc-ai-discovery.robotsStatus.note.${noteCode}`) : '';
         },
 
+        // Bildschirmleser bekommen Status, Grund und Hinweis in einem Satz; sichtbar steht der Grund
+        // nur im `title` beim Überfahren.
         itemLabel(crawler) {
             const note = this.noteLabel(crawler.noteCode);
 

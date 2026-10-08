@@ -7,9 +7,11 @@ namespace Ruhrcoder\RcAiDiscovery;
 use Shopware\Core\Framework\Plugin;
 
 /**
- * Plugin-Bootstrapper für RcAiDiscovery.
- * Liefert eine optimierte llms.txt aus und prüft/ergänzt die KI-Crawler-Freigaben der robots.txt.
- * Registrierung von Services erfolgt über services.xml.
+ * Einstieg des Plugins für KI-Auffindbarkeit: `/llms.txt` und `/llms-full.txt` je Domain sowie
+ * Prüfung und Ergänzung der KI-Crawler-Regeln in der robots.txt.
+ *
+ * Die Klasse bleibt leer. Es gibt keine Installationsschritte jenseits der Migration, und die
+ * Dienste stehen in `Resources/config/services.xml`.
  */
 final class RcAiDiscovery extends Plugin
 {

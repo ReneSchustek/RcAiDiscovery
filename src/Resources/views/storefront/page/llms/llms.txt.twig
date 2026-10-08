@@ -1,4 +1,5 @@
-{# Dünner Pass-Through: der Inhalt wird im LlmsTxtGenerator gebaut. autoescape aus, weil es sich
-   um eine reine Text-/Markdown-Datei handelt und die SEO-Platzhalter unverändert bleiben müssen,
-   damit der Controller sie durch absolute URLs ersetzen kann. Themes können diesen Block umhüllen. #}
+{# Reicht nur den fertigen Text durch, den `LlmsTxtGenerator` baut. `autoescape` ist aus, weil die
+   Datei reiner Markdown-Text ist und die SEO-Platzhalter unverändert ankommen müssen;
+   `LlmsDocumentGenerator` ersetzt sie nach dem Rendern durch absolute Adressen. Ein Theme kann den
+   Block erweitern, etwa um eigene Abschnitte davor oder danach. #}
 {% block rc_ai_discovery_llms_txt %}{% autoescape false %}{{ llmsContent }}{% endautoescape %}{% endblock %}

@@ -9,7 +9,8 @@ use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelDomain\SalesChannelDomainEntity;
 
 /**
- * Eine gespeicherte llms-Datei: fertiger Text inklusive absoluter Links, bereit zum Ausliefern.
+ * Eine gespeicherte llms-Datei: fertiger Text mit absoluten Links, den die Storefront-Route ohne
+ * weitere Abfrage ausliefert.
  */
 class LlmsDocumentEntity extends Entity
 {
@@ -22,10 +23,14 @@ class LlmsDocumentEntity extends Entity
     protected string $content;
 
     /**
-     * true = im Admin bearbeitet; die geplante Generierung lässt das Dokument dann in Ruhe.
+     * true, sobald der Inhalt in der Verwaltung gespeichert wurde. Weder die geplante Aufgabe noch
+     * „Jetzt aktualisieren" überschreiben ihn dann; nur „Neu generieren" setzt ihn zurück.
      */
     protected bool $isCustom;
 
+    /**
+     * Zeitpunkt des letzten Schreibens, auch einer Bearbeitung in der Verwaltung.
+     */
     protected \DateTimeInterface $generatedAt;
 
     protected ?SalesChannelDomainEntity $salesChannelDomain = null;

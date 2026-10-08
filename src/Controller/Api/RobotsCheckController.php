@@ -10,9 +10,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Admin-API: liefert den robots.txt-KI-Crawler-Status aller aktiven Storefront-Sales-Channels.
- * Nur Lesezugriff; wird von der Admin-Statusanzeige (config.xml-Komponente) aufgerufen.
- * ACL: Kern-Privileg `sales_channel:read` (Least Privilege).
+ * Admin-API für die Statusanzeige `rc-ai-discovery-robots-status`: je aktivem Storefront-Kanal,
+ * welche KI-Crawler die robots.txt zulässt.
+ *
+ * Die Prüfung liest nur, deshalb genügt das Kern-Privileg `sales_channel:read`.
  */
 #[Route(defaults: ['_routeScope' => ['api'], '_acl' => ['sales_channel:read']])]
 final class RobotsCheckController

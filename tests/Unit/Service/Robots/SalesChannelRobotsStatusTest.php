@@ -9,10 +9,16 @@ use Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\CrawlerStatus;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\SalesChannelRobotsStatus;
 
+/**
+ * Prüft die Kennzahlen, die die Robots-Prüfschnittstelle je Verkaufskanal neben der Crawler-Liste
+ * ausliefert. Zählten sie falsch, meldete die Antwort einen gesperrten Kanal als frei oder umgekehrt.
+ */
 final class SalesChannelRobotsStatusTest extends TestCase
 {
     public function testCountsBlockedAndUnknown(): void
     {
+        // Die zwei gesperrten Crawler tragen verschiedene Gründe (eigener Block, Sammelblock):
+        // gezählt wird nach dem Status, nicht nach dem Grund.
         $status = new SalesChannelRobotsStatus('sc-1', 'Kanal', 'https://shop.example', [
             new CrawlerStatus('A', CrawlerStatus::ALLOWED, CrawlerStatus::REASON_ALLOWED_DEFAULT, AiCrawlerCatalog::GROUP_SEARCH),
             new CrawlerStatus('B', CrawlerStatus::BLOCKED, CrawlerStatus::REASON_BLOCKED_OWN, AiCrawlerCatalog::GROUP_SEARCH),

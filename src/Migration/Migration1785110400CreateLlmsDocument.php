@@ -8,11 +8,12 @@ use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\Migration\MigrationStep;
 
 /**
- * Erstellt `rc_ai_discovery_llms_document` — die gespeicherten llms-Dateien je Domain.
+ * Legt die Tabelle der gespeicherten llms-Dateien je Domain an.
  *
- * Die UNIQUE-Constraint (sales_channel_domain_id, variant) hält je Domain genau eine Kurz- und
- * eine Langfassung; die geplante Generierung schreibt darüber per Upsert. Wird eine Domain
- * gelöscht, verschwindet ihr Dokument mit (ON DELETE CASCADE).
+ * Der eindeutige Schlüssel auf Domain und Variante hält je Domain genau eine Kurz- und eine
+ * Langfassung. Die Generierung übernimmt beim Upsert die Kennung des vorhandenen Dokuments, sonst
+ * scheiterte der zweite Lauf an diesem Schlüssel. Wird eine Domain gelöscht, verschwinden ihre
+ * Dokumente über `ON DELETE CASCADE` mit.
  */
 final class Migration1785110400CreateLlmsDocument extends MigrationStep
 {
@@ -46,6 +47,6 @@ final class Migration1785110400CreateLlmsDocument extends MigrationStep
 
     public function updateDestructive(Connection $connection): void
     {
-        // Kein destruktiver Schritt nötig.
+        // Die Migration legt nur an; es gibt nichts, das erst nach einem Update entfernt werden müsste.
     }
 }

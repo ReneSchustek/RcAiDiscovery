@@ -8,6 +8,12 @@ use PHPUnit\Framework\TestCase;
 use Ruhrcoder\RcAiDiscovery\Service\LlmsTxtConfigProvider;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
+/**
+ * Prüft, wie die im Admin gepflegten llms.txt-Felder bereinigt werden, bevor der Generator sie
+ * sieht. Ginge ein Zeilenumbruch in Titel oder Kurzbeschreibung durch, zerbräche die einzeilige
+ * Markdown-Zeile („# …", „> …"); gälte ein Feld aus Leerzeichen als gepflegt, verdrängte es den
+ * automatischen Wert durch nichts.
+ */
 final class LlmsTxtConfigProviderTest extends TestCase
 {
     private const SALES_CHANNEL_ID = 'sales-channel-id';

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Ruhrcoder\RcAiDiscovery\Service;
 
+use Psr\Log\LoggerInterface;
+use Shopware\Core\Content\Category\CategoryDefinition;
 use Shopware\Core\Content\Category\CategoryEntity;
 use Shopware\Core\Content\Seo\SeoUrlPlaceholderHandlerInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\System\SalesChannel\Entity\SalesChannelRepository;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
@@ -15,27 +19,36 @@ use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 /**
- * Baut den Inhalt der llms.txt im offiziellen Markdown-Format automatisch aus den Shop-Daten
- * der aufrufenden Sales-Channel-Domain. Kategorie-/Seiten-Links werden als SEO-Platzhalter
- * erzeugt; der Controller ersetzt sie anschließend domain-abhängig durch absolute URLs.
+ * Baut den Text einer llms-Datei im Markdown-Format von llmstxt.org aus den Shop-Daten des
+ * übergebenen Kontexts: Titel, Kurzbeschreibung, Kategorien, wichtige Seiten, Zusatz-Inhalt und
+ * Sitemap, in dieser Reihenfolge.
  *
- * Im Admin gepflegte Overrides kommen als `LlmsTxtConfig` herein und greifen jeweils vor dem
- * Auto-Wert; ist nichts gepflegt, ist die Ausgabe unverändert automatisch.
+ * Links entstehen als SEO-Platzhalter. `LlmsDocumentGenerator` ersetzt sie danach mit der Domain des
+ * Dokuments durch absolute Adressen; dieselbe Kategorie bekommt so je Sprache ihre eigene Adresse.
+ * Vorgaben aus `LlmsTxtConfig` gehen dem automatisch ermittelten Wert vor.
  */
 final class LlmsTxtGenerator
 {
     /**
-     * Obergrenze pro Abschnitt — verhindert unbegrenzte Result-Sets bei sehr großen Menü-Bäumen.
+     * Obergrenze je Elternkategorie, nicht je Abschnitt: „Wichtige Seiten" fragt Service- und
+     * Footer-Kategorie einzeln ab. Ein Menü mit mehr als 100 Einträgen auf einer Ebene ist kein
+     * Wegweiser mehr, und die Grenze hält die Abfrage bei ausufernden Bäumen klein. Was darüber
+     * hinausgeht, fällt nach Namen sortiert hinten weg.
      */
     private const CATEGORY_LIMIT = 100;
 
     /**
-     * Maximale Länge einer Kurzbeschreibung, damit die Datei kompakt und maschinenfreundlich bleibt.
+     * Fasst eine übliche Meta-Description von 150 bis 160 Zeichen vollständig und kürzt nur lange
+     * Beschreibungstexte, damit jeder Eintrag eine überschaubare Zeile bleibt.
      */
     private const DESCRIPTION_MAX_LENGTH = 240;
 
     private const SHOP_NAME_CONFIG_KEY = 'core.basicInformation.shopName';
 
+    /**
+     * Letzter Rückfall, wenn weder Shopname noch Kanalname gepflegt sind; die Datei braucht eine
+     * Überschrift.
+     */
     private const DEFAULT_SHOP_NAME = 'Shop';
 
     /**
@@ -45,15 +58,17 @@ final class LlmsTxtGenerator
         private readonly SystemConfigService $systemConfigService,
         private readonly SalesChannelRepository $categoryRepository,
         private readonly SeoUrlPlaceholderHandlerInterface $seoUrlReplacer,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
     /**
-     * Erzeugt den vollständigen llms.txt-Text (mit SEO-Platzhaltern für Links).
+     * Erzeugt den vollständigen Text mit SEO-Platzhaltern an den Links, abgeschlossen mit einem
+     * Zeilenumbruch.
      *
-     * @param string        $storefrontUrl absolute Basis-URL der Sales-Channel-Domain (für die Sitemap)
-     * @param bool          $full          true = ausführliche Variante (mit Beschreibungen und Footer-Seiten)
-     * @param LlmsTxtConfig $config        Admin-Overrides; nicht gesetzte Felder bleiben automatisch
+     * @param string        $storefrontUrl absolute Basisadresse der Domain, nur für den Sitemap-Link
+     * @param bool          $full          true = Langfassung mit Beschreibungen und Footer-Seiten
+     * @param LlmsTxtConfig $config        Vorgaben der Plugin-Konfiguration; `null`-Felder werden ermittelt
      */
     public function generate(SalesChannelContext $context, string $storefrontUrl, bool $full, LlmsTxtConfig $config): string
     {
@@ -71,6 +86,7 @@ final class LlmsTxtGenerator
         $this->appendSection($lines, 'Kategorien', $this->buildCategoryEntries($salesChannel, $context, $full));
         $this->appendSection($lines, 'Wichtige Seiten', $this->buildPageEntries($salesChannel, $context, $full));
 
+        // Der Zusatz-Inhalt kommt unverändert herein und bringt seine Überschriften selbst mit.
         if ($config->additionalContent !== null) {
             $lines[] = '';
             $lines[] = $config->additionalContent;
@@ -84,6 +100,10 @@ final class LlmsTxtGenerator
         return implode("\n", $lines) . "\n";
     }
 
+    /**
+     * Shopname aus den Grundeinstellungen, sonst der übersetzte Name des Verkaufskanals, sonst
+     * `DEFAULT_SHOP_NAME`.
+     */
     private function resolveShopName(SalesChannelContext $context, SalesChannelEntity $salesChannel): string
     {
         $configured = $this->systemConfigService->getString(self::SHOP_NAME_CONFIG_KEY, $context->getSalesChannelId());
@@ -110,6 +130,10 @@ final class LlmsTxtGenerator
         return \is_string($fallback) && trim($fallback) !== '' ? $fallback : null;
     }
 
+    /**
+     * Die Kurzbeschreibung kommt aus der Einstiegskategorie des Hauptmenüs, Meta-Description vor
+     * Beschreibung. `null` lässt die Zitatzeile ganz weg.
+     */
     private function resolveSummary(string $navigationCategoryId, SalesChannelContext $context): ?string
     {
         $category = $this->categoryRepository
@@ -125,6 +149,9 @@ final class LlmsTxtGenerator
     }
 
     /**
+     * Nur die oberste Menüebene: Sie beschreibt das Sortiment, die tieferen Ebenen führt die Sitemap
+     * am Ende der Datei.
+     *
      * @return list<string>
      */
     private function buildCategoryEntries(SalesChannelEntity $salesChannel, SalesChannelContext $context, bool $full): array
@@ -145,6 +172,8 @@ final class LlmsTxtGenerator
             $parentIds[] = $serviceCategoryId;
         }
 
+        // Die Footer-Kategorie nur in der Langfassung. Ist sie dieselbe wie die Service-Kategorie,
+        // würde sie sonst ein zweites Mal abgefragt.
         if ($full) {
             $footerCategoryId = $salesChannel->getFooterCategoryId();
             if ($footerCategoryId !== null && !\in_array($footerCategoryId, $parentIds, true)) {
@@ -156,6 +185,9 @@ final class LlmsTxtGenerator
     }
 
     /**
+     * Die direkten Kinder aller Elternkategorien als Listeneinträge, je Elternkategorie in der
+     * Sortierung von `loadActiveChildren()`. Eine Kategorie erscheint höchstens einmal.
+     *
      * @param list<string> $parentIds
      *
      * @return list<string>
@@ -191,16 +223,65 @@ final class LlmsTxtGenerator
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('parentId', $parentId));
         $criteria->addFilter(new EqualsFilter('active', true));
+
+        // Unsichtbare Kategorien zeigt die Storefront nicht; in einer Datei, die Maschinen als
+        // Wegweiser lesen, haben sie erst recht nichts verloren.
+        $criteria->addFilter(new EqualsFilter('visible', true));
+
+        // `link` verweist woanders hin, `folder` ist eine reine Sortiergruppe — beide haben keine
+        // eigene Seite. Ein Eintrag darauf ist bestenfalls eine Umleitung, schlimmstenfalls ein
+        // toter Verweis.
+        $criteria->addFilter(new NotFilter(NotFilter::CONNECTION_AND, [
+            new EqualsAnyFilter('type', [CategoryDefinition::TYPE_LINK, CategoryDefinition::TYPE_FOLDER]),
+        ]));
+
+        // Die kanonische Adresse wird mitgeladen, weil ohne sie kein brauchbarer Verweis entsteht;
+        // die Begründung steht bei `formatCategoryLink()`. Der Filter fragt nicht nach der Sprache,
+        // eine Adresse in irgendeiner Sprache des Kanals genügt ihm.
+        $criteria->addAssociation('seoUrls');
+        $seoCriteria = $criteria->getAssociation('seoUrls');
+        $seoCriteria->addFilter(new EqualsFilter('isCanonical', true));
+        $seoCriteria->addFilter(new EqualsFilter('isDeleted', false));
+        $seoCriteria->addFilter(new EqualsFilter('salesChannelId', $context->getSalesChannelId()));
+
+        // Alphabetisch statt in Menüreihenfolge: Die steckt in der Verkettung über `afterCategoryId`
+        // und lässt sich nicht als Sortierung abfragen.
         $criteria->addSorting(new FieldSorting('name', FieldSorting::ASCENDING));
         $criteria->setLimit(self::CATEGORY_LIMIT);
 
         return $this->categoryRepository->search($criteria, $context)->getEntities();
     }
 
+    /**
+     * Baut den Listeneintrag einer Kategorie oder gibt `null` zurück, wenn sie keinen Namen oder
+     * keine kanonische Adresse hat.
+     *
+     * Der Platzhalter wird später durch die SEO-Adresse ersetzt, wenn es eine gibt. Gibt es keine,
+     * bleibt die Kennungsadresse `/navigation/<id>` stehen. Am Live-Shop antwortet diese Adresse mit
+     * 404, und wer `navigation/` in seiner robots.txt sperrt, macht sie zusätzlich unerreichbar.
+     *
+     * Eine `llms.txt` ist eine Empfehlung an Maschinen. Ein toter Verweis darin beschädigt genau das
+     * Vertrauen, das die Datei herstellen soll; lieber ein Eintrag weniger als ein falscher.
+     */
     private function formatCategoryLink(CategoryEntity $category, bool $full): ?string
     {
         $name = $this->translated($category->getName(), $category->getTranslation('name'));
         if ($name === null) {
+            return null;
+        }
+
+        $seoUrls = $category->getSeoUrls();
+        if ($seoUrls === null || $seoUrls->count() === 0) {
+            // Eine sichtbare Seite ohne eigene Adresse ist ein Pflegefehler, deshalb `warning`.
+            // Laut wird es trotzdem nicht: Sortiergruppen und Verweis-Kategorien hat
+            // `loadActiveChildren()` schon ausgefiltert, hier kommt nur der echte Sonderfall an.
+            // Die Kern-Vorgabe für `prod` schreibt erst ab `error` ins Protokoll; wer die Meldung
+            // dort sehen will, braucht für den Kanal `rc_ai_discovery` eine eigene Stufe.
+            $this->logger->warning('rc-ai-discovery: Kategorie ohne kanonische Adresse in der llms.txt ausgelassen', [
+                'categoryId' => $category->getId(),
+                'name' => $name,
+            ]);
+
             return null;
         }
 
@@ -257,7 +338,8 @@ final class LlmsTxtGenerator
     }
 
     /**
-     * Entfernt HTML und komprimiert Whitespace; kürzt auf eine maschinenfreundliche Länge.
+     * Entfernt HTML, fasst Leerraum zu einzelnen Leerzeichen zusammen und kürzt auf
+     * `DESCRIPTION_MAX_LENGTH` Zeichen plus Auslassungszeichen. `null` heißt: kein brauchbarer Text.
      */
     private function normalizeDescription(?string $value): ?string
     {
@@ -286,8 +368,8 @@ final class LlmsTxtGenerator
     }
 
     /**
-     * Maskiert Markdown-Linktext, damit eckige Klammern im Namen die `[Text](URL)`-Struktur nicht
-     * aufbrechen können (Schutz gegen versehentliche/böswillige Link-Injection).
+     * Maskiert eckige Klammern im Linktext. Ein Kategoriename wie `Angebote](https://…` könnte sonst
+     * die `[Text](URL)`-Form aufbrechen und einen fremden Link in die Datei setzen.
      */
     private function escapeLinkText(string $value): string
     {

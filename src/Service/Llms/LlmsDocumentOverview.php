@@ -11,8 +11,9 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 
 /**
- * Stellt die gespeicherten Dokumente für die Admin-Anzeige zusammen: Domain, Variante, Stand,
- * Zustand und Inhalt — bewusst als schlanke Liste statt als DAL-Rohdaten.
+ * Stellt die gespeicherten Dokumente für die Anzeige in der Verwaltung zusammen: Domain, Variante,
+ * Stand, Zustand und Inhalt. Die Komponente bekommt eine flache Liste, damit sie weder die
+ * Entitätsstruktur noch die Domain-Zuordnung kennen muss.
  */
 final class LlmsDocumentOverview
 {
@@ -30,12 +31,15 @@ final class LlmsDocumentOverview
     {
         $criteria = new Criteria();
         $criteria->addAssociation('salesChannelDomain');
+        // Nach Kennung statt Adresse sortiert: Es reicht, dass beide Fassungen einer Domain
+        // nebeneinander stehen, `full` vor `short`.
         $criteria->addSorting(new FieldSorting('salesChannelDomainId'), new FieldSorting('variant'));
 
         $documents = [];
         foreach ($this->documentRepository->search($criteria, $context)->getEntities() as $document) {
             $documents[] = [
                 'id' => $document->getId(),
+                // Ohne geladene Domain bleibt die Adresse leer; die Zeile zeigt das Dokument trotzdem.
                 'url' => $document->getSalesChannelDomain()?->getUrl() ?? '',
                 'variant' => $document->getVariant(),
                 'isCustom' => $document->isCustom(),

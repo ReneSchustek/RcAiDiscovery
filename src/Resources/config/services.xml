@@ -10,14 +10,17 @@
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <argument type="service" id="sales_channel.category.repository"/>
             <argument type="service" id="Shopware\Core\Content\Seo\SeoUrlPlaceholderHandlerInterface"/>
+            <argument type="service" id="logger"/>
+            <!-- Eigener Protokollkanal: Die Warnung über ausgelassene Kategorien lässt sich so gezielt einstellen. -->
+            <tag name="monolog.logger" channel="rc_ai_discovery"/>
         </service>
 
-        <!-- Liest die Admin-Overrides (Titel, Beschreibung, Zusatz-Inhalt) je Sales-Channel. -->
+        <!-- Liest die Vorgaben (Titel, Kurzbeschreibung, Zusatz-Inhalt) je Verkaufskanal. -->
         <service id="Ruhrcoder\RcAiDiscovery\Service\LlmsTxtConfigProvider">
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
         </service>
 
-        <!-- Gespeicherte llms-Dateien je Sales-Channel-Domain. -->
+        <!-- Gespeicherte llms-Dateien je Domain. -->
         <service id="Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentDefinition">
             <tag name="shopware.entity.definition"/>
         </service>
@@ -43,6 +46,7 @@
             <tag name="shopware.scheduled.task"/>
         </service>
 
+        <!-- Der erste `logger` ist der Fehlerprotokollierer der Basisklasse, der zweite meldet den erfolgreichen Lauf. -->
         <service id="Ruhrcoder\RcAiDiscovery\ScheduledTask\LlmsGenerateTaskHandler">
             <argument type="service" id="scheduled_task.repository"/>
             <argument type="service" id="logger"/>
@@ -80,7 +84,7 @@
             <tag name="kernel.event_subscriber"/>
         </service>
 
-        <!-- Robots.txt-KI-Crawler-Check. -->
+        <!-- Prüfung der robots.txt auf KI-Crawler für die Anzeige in der Plugin-Konfiguration. -->
         <service id="Ruhrcoder\RcAiDiscovery\Service\Robots\RobotsAiCrawlerEvaluator">
             <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog"/>
         </service>

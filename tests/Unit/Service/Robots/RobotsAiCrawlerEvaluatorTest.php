@@ -13,10 +13,16 @@ use Shopware\Core\Framework\Context;
 use Shopware\Storefront\Page\Robots\Parser\RobotsDirectiveParser;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
+/**
+ * Prüft die eigene Auswertung, ob ein KI-Crawler die Startseite laden darf; der Core-Parser liefert
+ * nur die Blöcke, keine Entscheidung. Rechnet sie falsch, zeigt der KI-Check der Verwaltung einen
+ * gesperrten Crawler als frei oder schlägt Alarm, wo nichts gesperrt ist.
+ */
 final class RobotsAiCrawlerEvaluatorTest extends TestCase
 {
     /**
-     * Entspricht dem Default-Output des Core-Templates (mit Leerzeilen zwischen den Direktiven).
+     * Die Standardregeln der Core-Vorlage samt deren Leerzeilen, ohne `Allow: /*referringSalesChannel=`
+     * und `Allow: /thumbnail/*?ts=`. Beide treffen den Pfad „/" nicht und ändern am Ergebnis nichts.
      */
     private const CORE_DEFAULT = "User-agent: *\n\nAllow: /\n\nDisallow: /*?\n\nAllow: /*theme/\n\nAllow: /media/*?ts=\n";
 
@@ -88,7 +94,8 @@ final class RobotsAiCrawlerEvaluatorTest extends TestCase
     }
 
     /**
-     * Die Gruppe wandert aus dem Katalog bis in den Status durch — die Admin-Anzeige gruppiert danach.
+     * Gruppe und Hinweis wandern aus dem Katalog bis in den Status durch, weil die Verwaltung die
+     * Crawler nach der Gruppe ordnet.
      */
     public function testStatusCarriesGroupAndNoteFromCatalog(): void
     {
@@ -103,8 +110,8 @@ final class RobotsAiCrawlerEvaluatorTest extends TestCase
     }
 
     /**
-     * Regression: Ein Wildcard-Disallow mit Suffix (z. B. „Disallow: /*.pdf") matcht den Root-Pfad
-     * NICHT und darf den Crawler nicht fälschlich als blockiert melden.
+     * „Disallow: /*.pdf" sperrt nur Adressen, die „.pdf" enthalten, nicht die Startseite. Wer den
+     * Stern als „alles ab hier" liest, meldet den Crawler fälschlich als gesperrt.
      */
     public function testWildcardDisallowWithSuffixDoesNotBlockRoot(): void
     {
@@ -144,7 +151,7 @@ final class RobotsAiCrawlerEvaluatorTest extends TestCase
 
     public function testMergesMultipleExactBlocksForSameToken(): void
     {
-        // Zwei GPTBot-Blöcke; der zweite verbietet die Root. Beide müssen zusammengeführt werden.
+        // Der erste Block trifft „/" nicht; zählte nur er, käme GPTBot als erlaubt heraus.
         $robots = "User-agent: GPTBot\nAllow: /public\n\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n";
 
         $statuses = $this->evaluate($robots, ['GPTBot']);
@@ -169,6 +176,8 @@ final class RobotsAiCrawlerEvaluatorTest extends TestCase
     }
 
     /**
+     * Die Gruppe der Teilmenge ist ein Platzhalter; die Bewertung reicht sie nur durch.
+     *
      * @param list<string>|null $tokens Teilmenge; null wertet den vollständigen Katalog aus
      *
      * @return list<CrawlerStatus>

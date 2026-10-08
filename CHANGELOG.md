@@ -3,6 +3,41 @@
 Alle nennenswerten Änderungen an RcAiDiscovery werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht] — Kommentare nachgezogen
+
+Ohne Wirkung im Shop; geändert sind nur Kommentare.
+
+### Intern
+
+- Kommentare im ganzen Bestand nachgezogen: Köpfe an allen Typen und Testklassen, gewählte Zahlen mit
+  Grund, Rückblicke und Werkzeugspuren entfernt, gut ein Dutzend sachlich falsche Aussagen gegen den
+  Code berichtigt. Ein Wächter hält fest, dass jeder Typ unter `src/` einen Kopf hat.
+
+## [0.6.3] - 2026-08-26 — Kein toter Verweis mehr in der llms.txt
+
+> **Deployment:** `php bin/console plugin:update RcAiDiscovery`, danach die Dateien neu erzeugen
+> (Karte im Verwaltungsbereich oder der tägliche Auftrag).
+
+### Behoben
+
+- **Die `llms.txt` führte eine Kategorie ohne eigene Adresse als `/navigation/<id>` auf — und
+  dieser Verweis antwortete mit 404.** Am Live-Shop gemessen (2026-08-26): elf von zwölf Verweisen
+  antworteten mit 200, einer nicht. Erschwerend kam hinzu, dass dieselbe `robots.txt`, die dieses
+  Plugin schreibt, das Muster `navigation/` sperrt — der Verweis war also tot **und** gesperrt.
+
+  Eine `llms.txt` ist eine Empfehlung an Maschinen; ein toter Verweis darin beschädigt genau das
+  Vertrauen, das die Datei herstellen soll. **Kategorien ohne kanonische, nicht gelöschte Adresse
+  werden jetzt ausgelassen** statt auf die Kennungsadresse zurückzufallen.
+
+### Geändert
+
+- Mit aufgenommen werden nur noch Kategorien, die **sichtbar** sind und eine **eigene Seite**
+  haben. Die Typen `link` (verweist woanders hin) und `folder` (reine Sortiergruppe) fallen damit
+  weg; im selben Shop führte `Bodenprofile` als `link` auf eine Umleitung — kein 404, aber auch
+  kein brauchbares Ziel für eine Maschinenliste.
+- **Kein stiller Ausfall:** Wird eine Kategorie ausgelassen, steht das mit Kennung und Namen im
+  Log. Wer später einen Bereich vermisst, findet dort den Grund.
+
 ## [0.6.2] - 2026-08-04 — Abhängigkeitsliste nachgezogen
 
 > **Deployment:** `php bin/console plugin:update RcAiDiscovery`. Keine Code-Änderung.

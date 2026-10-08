@@ -15,9 +15,12 @@ use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 use Shopware\Storefront\Page\Robots\Parser\RobotsDirectiveParser;
 
 /**
- * Prüft für alle aktiven Storefront-Sales-Channels, ob die relevanten KI-Crawler durch die
- * robots.txt zugelassen sind. Orchestriert Beschaffung (Provider), Parsen (Core-Parser) und
- * Bewertung (Evaluator). Ein Fehler bei einem Kanal darf die Prüfung der übrigen nicht abbrechen.
+ * Prüft für alle aktiven Storefront-Kanäle, welche KI-Crawler die robots.txt zulässt: Text
+ * beschaffen (`EffectiveRobotsTxtProvider`), mit dem Parser des Kerns zerlegen, mit
+ * `RobotsAiCrawlerEvaluator` bewerten.
+ *
+ * Jeder Kanal bekommt ein Ergebnis, auch wenn seine Prüfung scheitert; dann stehen alle Crawler
+ * auf „unbekannt" mit dem Grund. Ein kaputter Kanal leert so nicht die ganze Anzeige.
  */
 final class RobotsCheckService
 {
@@ -54,6 +57,7 @@ final class RobotsCheckService
 
     private function checkSalesChannel(SalesChannelEntity $salesChannel, Context $context): SalesChannelRobotsStatus
     {
+        // Ohne Übersetzung in der Sprache der Verwaltung zeigt die Anzeige wenigstens die Kennung.
         $name = $salesChannel->getName() ?? $salesChannel->getId();
         $url = $this->firstDomainUrl($salesChannel);
 
@@ -76,7 +80,8 @@ final class RobotsCheckService
 
             return new SalesChannelRobotsStatus($salesChannel->getId(), $name, $url, $this->evaluator->evaluate($parsed));
         } catch (\Throwable $exception) {
-            // Ein Kanal-Fehler darf die Gesamtprüfung nicht kippen — als „unbekannt" melden und loggen.
+            // Ein Fehler in einem Kanal darf die Prüfung der übrigen nicht abbrechen. Er landet im
+            // Protokoll, in der Anzeige steht der Kanal auf „unbekannt".
             $this->logger->error('robots.txt-KI-Check für Sales-Channel fehlgeschlagen', [
                 'salesChannelId' => $salesChannel->getId(),
                 'host' => $host,
@@ -88,7 +93,9 @@ final class RobotsCheckService
     }
 
     /**
-     * Nutzt die erste Domain des Sales-Channels als repräsentativen Host für den Check.
+     * Geprüft wird nur der Host einer Domain des Kanals, weil die robots.txt je Host ausgeliefert
+     * wird und die Kanäle meist nur einen haben. Welche Domain das ist, legt die Abfrage nicht fest:
+     * Die Assoziation hat keine Sortierung.
      */
     private function firstDomainUrl(SalesChannelEntity $salesChannel): ?string
     {

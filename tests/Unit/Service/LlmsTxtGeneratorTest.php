@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAiDiscovery\Tests\Unit\Service;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Ruhrcoder\RcAiDiscovery\Service\LlmsTxtConfig;
 use Ruhrcoder\RcAiDiscovery\Service\LlmsTxtGenerator;
 use Shopware\Core\Content\Category\CategoryCollection;
 use Shopware\Core\Content\Category\CategoryEntity;
+use Shopware\Core\Content\Seo\SeoUrl\SeoUrlCollection;
+use Shopware\Core\Content\Seo\SeoUrl\SeoUrlEntity;
 use Shopware\Core\Content\Seo\SeoUrlPlaceholderHandlerInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
@@ -18,6 +22,12 @@ use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 
+/**
+ * Prüft den Markdown-Text der llms.txt, den der Generator aus Kategorien, Konfiguration und
+ * Admin-Feldern baut. Bricht er, steht in der Datei ein toter Verweis, ein leerer Abschnitt in der
+ * Zweitsprache oder eine zerbrochene Linkstruktur, und KI-Systeme lesen genau diese Datei als
+ * Wegweiser durch den Shop.
+ */
 final class LlmsTxtGeneratorTest extends TestCase
 {
     private const NAV_ID = 'nav-category-id';
@@ -48,7 +58,7 @@ final class LlmsTxtGeneratorTest extends TestCase
         $content = $this->createGenerator('Mein Testshop')
             ->generate($this->createContext(), 'https://shop.example', false, LlmsTxtConfig::auto());
 
-        // In der Kurzvariante steht hinter dem Link keine Beschreibung.
+        // Der Zeilenumbruch direkt hinter der Klammer schließt auch ein angehängtes „: …" aus.
         self::assertStringContainsString('- [Damen](URL::cat-a)' . "\n", $content);
         self::assertStringNotContainsString('Modische Damenkollektion', $content);
     }
@@ -79,6 +89,7 @@ final class LlmsTxtGeneratorTest extends TestCase
 
     public function testFullVariantTruncatesLongDescriptionWithEllipsis(): void
     {
+        // 300 Zeichen liegen deutlich über der Obergrenze von 240 aus `DESCRIPTION_MAX_LENGTH`.
         $long = str_repeat('a', 300);
         $content = $this->generatorWithTopLevel([$this->category('cat-x', 'Lang', $long)])
             ->generate($this->createContext(), 'https://shop.example', true, LlmsTxtConfig::auto());
@@ -93,6 +104,50 @@ final class LlmsTxtGeneratorTest extends TestCase
             ->generate($this->createContext(), 'https://shop.example', false, LlmsTxtConfig::auto());
 
         self::assertStringNotContainsString('URL::cat-blank', $content);
+    }
+
+    /**
+     * Ohne kanonische Adresse bliebe nur die Kennungsadresse `/navigation/<id>` stehen. Gemessen am
+     * Live-Shop (26.08.2026) antwortet sie für eine solche Kategorie mit 404; lieber ein Eintrag
+     * weniger als ein toter.
+     */
+    public function testSkipsCategoryWithoutCanonicalSeoUrl(): void
+    {
+        $content = $this->generatorWithTopLevel([$this->categoryWithoutSeoUrl('cat-ohne', 'Beliebte Kategorien', null)])
+            ->generate($this->createContext(), 'https://shop.example', false, LlmsTxtConfig::auto());
+
+        self::assertStringNotContainsString('URL::cat-ohne', $content);
+        self::assertStringNotContainsString('Beliebte Kategorien', $content);
+    }
+
+    /**
+     * Eine ausgelassene Kategorie darf nicht still verschwinden. Auf einem produktiven Shop steht die
+     * Protokollstufe auf `error`, ein `info` ginge dort wortlos unter; deshalb zählt die Stufe mit.
+     */
+    public function testSkippedCategoryIsReportedAsWarning(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('warning')
+            ->with(
+                self::stringContains('ohne kanonische Adresse'),
+                self::callback(static fn (array $kontext): bool => ($kontext['categoryId'] ?? null) === 'cat-still')
+            );
+
+        $this->generatorWithTopLevel([$this->categoryWithoutSeoUrl('cat-still', 'Ohne Adresse', null)], $logger)
+            ->generate($this->createContext(), 'https://shop.example', false, LlmsTxtConfig::auto());
+    }
+
+    /**
+     * Gegenprobe zum Auslassen: Kategorien mit kanonischer Adresse bleiben in der Datei. Ohne sie
+     * fiele ein Filter, der alles verwirft, in keinem Test auf.
+     */
+    public function testKeepsCategoryWithCanonicalSeoUrl(): void
+    {
+        $content = $this->generatorWithTopLevel([$this->category('cat-mit', 'Handläufe', null)])
+            ->generate($this->createContext(), 'https://shop.example', false, LlmsTxtConfig::auto());
+
+        self::assertStringContainsString('- [Handläufe](URL::cat-mit)', $content);
     }
 
     public function testEscapesMarkdownBracketsInCategoryName(): void
@@ -148,8 +203,8 @@ final class LlmsTxtGeneratorTest extends TestCase
     }
 
     /**
-     * Regressionsschutz: ohne Overrides muss die Ausgabe exakt dem Stand vor der Admin-Konfiguration
-     * entsprechen — die Automatik darf sich durch die Pflege im Admin in keinem Zeichen verändern.
+     * Ohne gepflegte Admin-Felder ist die Ausgabe zeichengenau die automatische. Der Vergleich des
+     * ganzen Textes fängt auch eine verirrte Leerzeile, die ein ungesetztes Feld hinterlassen könnte.
      */
     public function testAutoConfigProducesUnchangedOutput(): void
     {
@@ -226,12 +281,12 @@ final class LlmsTxtGeneratorTest extends TestCase
     }
 
     /**
-     * Baut einen Generator, dessen Repository die angegebenen Top-Level-Kategorien liefert
-     * (leere Summary, keine Service-Seiten).
+     * Das Repository liefert nur die angegebenen Top-Level-Kategorien, also weder Kurzbeschreibung
+     * noch Service-Seiten; so steht im Text nichts außer den Kategorien unter Test.
      *
      * @param list<CategoryEntity> $topLevel
      */
-    private function generatorWithTopLevel(array $topLevel): LlmsTxtGenerator
+    private function generatorWithTopLevel(array $topLevel, ?LoggerInterface $logger = null): LlmsTxtGenerator
     {
         $systemConfig = $this->createMock(SystemConfigService::class);
         $systemConfig->method('getString')->willReturn('Mein Testshop');
@@ -258,7 +313,7 @@ final class LlmsTxtGeneratorTest extends TestCase
             }
         );
 
-        return new LlmsTxtGenerator($systemConfig, $repository, $seoReplacer);
+        return new LlmsTxtGenerator($systemConfig, $repository, $seoReplacer, $logger ?? new NullLogger());
     }
 
     private function createGenerator(string $configuredShopName): LlmsTxtGenerator
@@ -271,7 +326,7 @@ final class LlmsTxtGeneratorTest extends TestCase
             static fn (string $name, array $parameters = []): string => 'URL::' . ($parameters['navigationId'] ?? '')
         );
 
-        return new LlmsTxtGenerator($systemConfig, $this->createCategoryRepository(), $seoReplacer);
+        return new LlmsTxtGenerator($systemConfig, $this->createCategoryRepository(), $seoReplacer, new NullLogger());
     }
 
     /**
@@ -317,7 +372,25 @@ final class LlmsTxtGeneratorTest extends TestCase
         return $result;
     }
 
+    /**
+     * Eine Kategorie mit kanonischer Adresse, dem Regelfall im Shop. Den Gegenfall stellt
+     * `categoryWithoutSeoUrl()` her.
+     */
     private function category(string $id, ?string $name, ?string $description): CategoryEntity
+    {
+        $category = $this->categoryWithoutSeoUrl($id, $name, $description);
+
+        $seoUrl = new SeoUrlEntity();
+        $seoUrl->setId($id . '-seo');
+        $seoUrl->setSeoPathInfo('kategorie/' . $id);
+        $seoUrl->setIsCanonical(true);
+        $seoUrl->setIsDeleted(false);
+        $category->setSeoUrls(new SeoUrlCollection([$seoUrl]));
+
+        return $category;
+    }
+
+    private function categoryWithoutSeoUrl(string $id, ?string $name, ?string $description): CategoryEntity
     {
         $category = new CategoryEntity();
         $category->setId($id);

@@ -1,5 +1,6 @@
-// Hinweis: Shopware stellt die $color-*-SCSS-Variablen im Plugin-Admin-Scope nicht bereit,
-// daher bewusst feste Hex-Werte für die semantischen Statusfarben (grün/rot/grau).
+// Die `$color-*`-Variablen des Kerns kommen nicht von selbst in die Stylesheets eines Plugins,
+// deshalb stehen die Statusfarben als Hex-Werte hier. Sie entsprechen `$color-emerald-500`,
+// `$color-crimson-500`, `$color-gray-300` und `$color-gray-900` der Verwaltung.
 $rc-ai-status-allowed: #37d046;
 $rc-ai-status-blocked: #de294c;
 $rc-ai-status-unknown: #d1d9e0;
@@ -75,6 +76,7 @@ $rc-ai-muted: #758ca3;
         font-size: 12px;
     }
 
+    // Die Regel für `is--unknown` wiederholt nur den Grundwert aus `&__dot`.
     &__item.is--allowed &__dot {
         background: $rc-ai-status-allowed;
     }
