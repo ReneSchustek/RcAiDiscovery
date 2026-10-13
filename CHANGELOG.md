@@ -3,7 +3,7 @@
 Alle nennenswerten Änderungen an RcAiDiscovery werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
-## [0.7.0] - 2026-10-13 — KI-Regeln je Verkaufskanal kommen an, robots.txt wie der Kern
+## [0.7.0] - 2026-10-13: KI-Regeln je Verkaufskanal kommen an, robots.txt wie der Kern
 
 > **Ausrollen:** `php bin/console plugin:update RcAiDiscovery && php bin/console cache:clear`. Keine Migration.
 
@@ -30,27 +30,23 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Versionier
 - Der Test zur Langfassung prüft jetzt den Filter der Abfrage, nicht nur das Cache-Schlagwort; die Begründungen
   „eigener Block erlaubt" und „Sammelblock sperrt" sind abgedeckt.
 
-## [Unveröffentlicht] — Kommentare nachgezogen
-
-Ohne Wirkung im Shop; geändert sind nur Kommentare.
-
 ### Intern
 
 - Kommentare im ganzen Bestand nachgezogen: Köpfe an allen Typen und Testklassen, gewählte Zahlen mit
-  Grund, Rückblicke und Werkzeugspuren entfernt, gut ein Dutzend sachlich falsche Aussagen gegen den
-  Code berichtigt. Ein Wächter hält fest, dass jeder Typ unter `src/` einen Kopf hat.
+  Grund, Rückblicke entfernt, gut ein Dutzend sachlich falsche Aussagen gegen den Code berichtigt. Ein
+  Wächter hält fest, dass jeder Typ unter `src/` einen Kopf hat.
 
-## [0.6.3] - 2026-08-26 — Kein toter Verweis mehr in der llms.txt
+## [0.6.3] - 2026-08-26: Kein toter Verweis mehr in der llms.txt
 
 > **Deployment:** `php bin/console plugin:update RcAiDiscovery`, danach die Dateien neu erzeugen
 > (Karte im Verwaltungsbereich oder der tägliche Auftrag).
 
 ### Behoben
 
-- **Die `llms.txt` führte eine Kategorie ohne eigene Adresse als `/navigation/<id>` auf — und
+- **Die `llms.txt` führte eine Kategorie ohne eigene Adresse als `/navigation/<id>` auf, und
   dieser Verweis antwortete mit 404.** Am Live-Shop gemessen (2026-08-26): elf von zwölf Verweisen
   antworteten mit 200, einer nicht. Erschwerend kam hinzu, dass dieselbe `robots.txt`, die dieses
-  Plugin schreibt, das Muster `navigation/` sperrt — der Verweis war also tot **und** gesperrt.
+  Plugin schreibt, das Muster `navigation/` sperrt. Der Verweis war also tot **und** gesperrt.
 
   Eine `llms.txt` ist eine Empfehlung an Maschinen; ein toter Verweis darin beschädigt genau das
   Vertrauen, das die Datei herstellen soll. **Kategorien ohne kanonische, nicht gelöschte Adresse
@@ -60,12 +56,12 @@ Ohne Wirkung im Shop; geändert sind nur Kommentare.
 
 - Mit aufgenommen werden nur noch Kategorien, die **sichtbar** sind und eine **eigene Seite**
   haben. Die Typen `link` (verweist woanders hin) und `folder` (reine Sortiergruppe) fallen damit
-  weg; im selben Shop führte `Bodenprofile` als `link` auf eine Umleitung — kein 404, aber auch
+  weg; im selben Shop führte `Bodenprofile` als `link` auf eine Umleitung. Das ist kein 404, aber auch
   kein brauchbares Ziel für eine Maschinenliste.
 - **Kein stiller Ausfall:** Wird eine Kategorie ausgelassen, steht das mit Kennung und Namen im
   Log. Wer später einen Bereich vermisst, findet dort den Grund.
 
-## [0.6.2] - 2026-08-04 — Abhängigkeitsliste nachgezogen
+## [0.6.2] - 2026-08-04: Abhängigkeitsliste nachgezogen
 
 > **Deployment:** `php bin/console plugin:update RcAiDiscovery`. Keine Code-Änderung.
 
@@ -73,7 +69,7 @@ Ohne Wirkung im Shop; geändert sind nur Kommentare.
 
 - **Die eingecheckte `composer.lock` war veralteter als das, was tatsächlich installiert
   wurde.** Sie stand auf `shopware/core 6.7.11.1` und zog damit `composer/composer 2.10.1`,
-  `dompdf 3.1.4` und `guzzle 7.12.3` — Fassungen, für die dreizehn Sicherheitsmeldungen
+  `dompdf 3.1.4` und `guzzle 7.12.3`, also Fassungen, für die dreizehn Sicherheitsmeldungen
   vorliegen, darunter eine hohe. Im installierten `vendor/` lagen längst die reparierten
   Fassungen; deshalb meldete `composer audit` sauber, während die Meldungen am Repository
   stehen blieben. Der Lock steht jetzt auf `6.7.12.2`, `composer/composer 2.10.2`,
@@ -85,7 +81,7 @@ Am Code des Plugins wurde nichts geändert.
 
 ### Behoben
 - **Zweitsprachen enthielten keine Inhalte:** fehlt einer Kategorie die Übersetzung, zeigt die
-  Storefront den Wert aus der Rückfallkette — die llms-Dateien übersprangen sie dagegen. In einem
+  Storefront den Wert aus der Rückfallkette, die llms-Dateien übersprangen sie dagegen. In einem
   zweisprachigen Shop blieb die Datei der Zweitsprache dadurch nahezu leer. Kategoriename,
   Beschreibungen und der Name des Verkaufskanals folgen jetzt derselben Rückfallkette wie die
   Storefront. Kategorien ohne jeden Namen bleiben wie bisher außen vor.
@@ -111,13 +107,13 @@ Am Code des Plugins wurde nichts geändert.
 
 ### Hinzugefügt
 - **KI-Regeln in der robots.txt**: ein Schalter aktiviert das Schreiben, danach entscheidet je
-  Gruppe — *Suche und Zitation*, *Abruf auf Nutzerwunsch*, *Training* — ob die Crawler erlaubt oder
+  Gruppe (*Suche und Zitation*, *Abruf auf Nutzerwunsch*, *Training*), ob die Crawler erlaubt oder
   gesperrt werden. So lässt sich „gefunden werden" getrennt von „Inhalte fürs Modelltraining
   abgeben" regeln.
 - Überarbeiteter Crawler-Katalog nach Zweck gruppiert, u. a. mit Claude-User, Claude-SearchBot,
   MistralAI-User, DuckAssistBot, Applebot, Meta-ExternalFetcher, Google-CloudVertexBot, GoogleOther.
-- Erlaubende Regeln übernehmen die Schutzregeln des Shops (keine Indexierung von Parameter-URLs) —
-  ein eigener Regelblock ersetzt sonst den Sammelblock samt dieser Regeln.
+- Erlaubende Regeln übernehmen die Schutzregeln des Shops (keine Indexierung von Parameter-URLs),
+  denn ein eigener Regelblock ersetzt sonst den Sammelblock samt dieser Regeln.
 - Bereits im Shop gepflegte Regeln für einen Crawler bleiben unangetastet.
 - Die Statusanzeige gruppiert die Crawler nach Zweck und weist Bingbot als Sonderfall aus: er
   trägt zugleich die klassische Suche und wird deshalb nur geprüft, nie geregelt.
@@ -153,7 +149,7 @@ Am Code des Plugins wurde nichts geändert.
 ### Behoben
 - Korrektes robots.txt-Wildcard-Matching (`*`/`$`): Muster wie `Disallow: /*.pdf` melden den Crawler
   nicht mehr fälschlich als blockiert. Mehrere Blöcke desselben User-Agents werden zusammengeführt.
-- effektive robots.txt wird über den `TemplateFinder` aufgelöst — berücksichtigt spätere
+- effektive robots.txt wird über den `TemplateFinder` aufgelöst und berücksichtigt damit spätere
   `sw_extends`-Overrides (relevant, sobald das Plugin selbst Regeln in die robots.txt schreibt).
 - Admin-Endpoint mit ACL (`sales_channel:read`); Fehler pro Sales-Channel werden abgefangen, als
   „unbekannt" gemeldet und mit Kontext geloggt (Graceful Degradation).

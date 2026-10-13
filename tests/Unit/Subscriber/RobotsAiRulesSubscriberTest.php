@@ -60,7 +60,7 @@ final class RobotsAiRulesSubscriberTest extends TestCase
     /**
      * Was: echter Abruf von /robots.txt, ohne Verkaufskanal an der Anfrage; für den Host ist ein Kanal
      *      hinterlegt, und dort sind die KI-Regeln eingeschaltet, global nicht.
-     * Warum: So kam die Einstellung je Kanal nie an (BRIEF03, Befund 1).
+     * Warum: So kam die Einstellung je Kanal nie an.
      * Erwartet: Die Blöcke stehen da; der Kanal kam über den Hostnamen.
      */
     public function testChannelIsResolvedFromTheHostWhenTheRequestHasNone(): void
@@ -73,11 +73,11 @@ final class RobotsAiRulesSubscriberTest extends TestCase
             static fn (string $key, ?string $salesChannelId = null): string => $salesChannelId === 'kanal-host' ? 'allow' : ''
         );
         $resolver = $this->createMock(HostSalesChannelResolver::class);
-        $resolver->expects(self::once())->method('resolve')->with('www.edelstahl-trummer.de')->willReturn('kanal-host');
+        $resolver->expects(self::once())->method('resolve')->with('www.beispiel-shop.de')->willReturn('kanal-host');
 
         $page = $this->page();
         $request = new Request();
-        $request->server->set('HTTP_HOST', 'www.edelstahl-trummer.de');
+        $request->server->set('HTTP_HOST', 'www.beispiel-shop.de');
         (new RobotsAiRulesSubscriber(new AiCrawlerCatalog(), new AiRulesConfigProvider($systemConfig), $resolver))
             ->onRobotsPageLoaded(new RobotsPageLoadedEvent($page, Context::createDefaultContext(), $request));
 

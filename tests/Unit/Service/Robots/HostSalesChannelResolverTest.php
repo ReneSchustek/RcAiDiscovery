@@ -18,8 +18,8 @@ final class HostSalesChannelResolverTest extends TestCase
     public function testOneDomainGivesItsChannel(): void
     {
         self::assertSame('aaa', HostSalesChannelResolver::pick([
-            ['sales_channel_id' => 'aaa', 'url' => 'https://www.edelstahl-trummer.de'],
-        ], 'www.edelstahl-trummer.de'));
+            ['sales_channel_id' => 'aaa', 'url' => 'https://www.beispiel-shop.de'],
+        ], 'www.beispiel-shop.de'));
     }
 
     /**
@@ -29,9 +29,9 @@ final class HostSalesChannelResolverTest extends TestCase
     public function testOnlyTheExactHostCounts(): void
     {
         self::assertSame('aaa', HostSalesChannelResolver::pick([
-            ['sales_channel_id' => 'aaa', 'url' => 'https://www.edelstahl-trummer.de'],
-            ['sales_channel_id' => 'bbb', 'url' => 'https://staging.www.edelstahl-trummer.de'],
-        ], 'www.edelstahl-trummer.de'));
+            ['sales_channel_id' => 'aaa', 'url' => 'https://www.beispiel-shop.de'],
+            ['sales_channel_id' => 'bbb', 'url' => 'https://staging.www.beispiel-shop.de'],
+        ], 'www.beispiel-shop.de'));
     }
 
     /**

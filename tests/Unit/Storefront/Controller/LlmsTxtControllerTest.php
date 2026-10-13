@@ -76,7 +76,7 @@ final class LlmsTxtControllerTest extends TestCase
 
     /**
      * Was: Die Erzeugung bei Bedarf scheitert.
-     * Warum: Bisher antwortete /llms.txt mit 500, und jeder weitere Abruf versuchte es erneut (BRIEF03, Befund 7).
+     * Warum: Bisher antwortete /llms.txt mit 500, und jeder weitere Abruf versuchte es erneut.
      * Erwartet: 503 mit Retry-After, ein Protokolleintrag; der zweite Abruf versucht es nicht noch einmal.
      */
     public function testFailedGenerationAnswers503AndIsNotRetriedImmediately(): void

@@ -1,6 +1,6 @@
 # Verhindert CRLF-Drift auf Windows trotz core.autocrlf=true.
 # .editorconfig fordert LF für alle Textdateien; PHP CS Fixer schlägt
-# sonst in der DevBox-/CI-Pipeline auf CRLF an.
+# sonst auf dem Entwicklungsserver und in der CI-Pipeline auf CRLF an.
 
 * text=auto eol=lf
 
