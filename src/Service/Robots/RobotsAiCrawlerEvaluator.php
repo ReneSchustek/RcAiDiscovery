@@ -30,20 +30,21 @@ final class RobotsAiCrawlerEvaluator
 
     /**
      * @param list<AiCrawler>|null $crawlers Teilmenge zum Testen; Standard ist der vollständige Katalog
+     * @param string $path Pfad, für den gilt „darf rein": `/` oder der Pfad einer Domain wie `/en/`
      *
      * @return list<CrawlerStatus>
      */
-    public function evaluate(ParsedRobots $parsed, ?array $crawlers = null): array
+    public function evaluate(ParsedRobots $parsed, ?array $crawlers = null, string $path = self::ROOT_PATH): array
     {
         $statuses = [];
         foreach ($crawlers ?? $this->catalog->all() as $crawler) {
-            $statuses[] = $this->evaluateCrawler($crawler, $parsed);
+            $statuses[] = $this->evaluateCrawler($crawler, $parsed, $path);
         }
 
         return $statuses;
     }
 
-    private function evaluateCrawler(AiCrawler $crawler, ParsedRobots $parsed): CrawlerStatus
+    private function evaluateCrawler(AiCrawler $crawler, ParsedRobots $parsed, string $path): CrawlerStatus
     {
         $resolution = $this->resolveDirectives($crawler->token, $parsed);
 
@@ -52,7 +53,7 @@ final class RobotsAiCrawlerEvaluator
             return $this->status($crawler, CrawlerStatus::ALLOWED, CrawlerStatus::REASON_ALLOWED_DEFAULT);
         }
 
-        if ($this->isRootAllowed($resolution->directives)) {
+        if ($this->isPathAllowed($resolution->directives, $path)) {
             $reason = $resolution->viaOwnBlock ? CrawlerStatus::REASON_ALLOWED_OWN : CrawlerStatus::REASON_ALLOWED_WILDCARD;
 
             return $this->status($crawler, CrawlerStatus::ALLOWED, $reason);
@@ -106,13 +107,13 @@ final class RobotsAiCrawlerEvaluator
      *
      * @param list<\Shopware\Storefront\Page\Robots\Struct\RobotsDirective> $directives
      */
-    private function isRootAllowed(array $directives): bool
+    private function isPathAllowed(array $directives, string $path): bool
     {
         $bestLength = -1;
         $bestType = null;
 
         foreach ($directives as $directive) {
-            if (!$this->matchesRoot($directive->value)) {
+            if (!$this->matchesPath($directive->value, $path)) {
                 continue;
             }
 
@@ -127,7 +128,7 @@ final class RobotsAiCrawlerEvaluator
             return true;
         }
 
-        // Ein leeres `Disallow:` passt nach `matchesRoot()` immer, sperrt aber nichts. Gewinnt es mit
+        // Ein leeres `Disallow:` passt nach `matchesPath()` immer, sperrt aber nichts. Gewinnt es mit
         // Länge 0, ist der Pfad frei.
         if ($bestType === RobotsDirectiveType::DISALLOW) {
             return $bestLength === 0;
@@ -137,10 +138,11 @@ final class RobotsAiCrawlerEvaluator
     }
 
     /**
-     * Prüft, ob ein Muster auf `/` passt. `*` steht für eine beliebige Zeichenfolge, ein `$` am Ende
-     * verankert das Ende der Adresse; ohne `$` reicht ein passender Anfang.
+     * Prüft, ob ein Muster auf den Pfad passt (`/` oder der Pfad einer Domain wie `/en/`). `*` steht für eine
+     * beliebige Zeichenfolge, ein `$` am Ende verankert das Ende der Adresse; ohne `$` reicht ein passender
+     * Anfang.
      */
-    private function matchesRoot(string $pattern): bool
+    private function matchesPath(string $pattern, string $path): bool
     {
         if ($pattern === '') {
             return true;
@@ -158,6 +160,6 @@ final class RobotsAiCrawlerEvaluator
 
         $regex = '#^' . implode('.*', $quoted) . ($anchorEnd ? '$' : '') . '#';
 
-        return preg_match($regex, self::ROOT_PATH) === 1;
+        return preg_match($regex, $path) === 1;
     }
 }

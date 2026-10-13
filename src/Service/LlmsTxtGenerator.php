@@ -236,13 +236,15 @@ final class LlmsTxtGenerator
         ]));
 
         // Die kanonische Adresse wird mitgeladen, weil ohne sie kein brauchbarer Verweis entsteht;
-        // die Begründung steht bei `formatCategoryLink()`. Der Filter fragt nicht nach der Sprache,
-        // eine Adresse in irgendeiner Sprache des Kanals genügt ihm.
+        // die Begründung steht bei `formatCategoryLink()`. Gefiltert wird auf die Sprache des Kontexts:
+        // Nur in dieser ersetzt der Platzhalter später die Adresse. Eine Adresse in einer anderen Sprache
+        // ließ die Prüfung durch, und in der Datei stand dann `/navigation/<id>`.
         $criteria->addAssociation('seoUrls');
         $seoCriteria = $criteria->getAssociation('seoUrls');
         $seoCriteria->addFilter(new EqualsFilter('isCanonical', true));
         $seoCriteria->addFilter(new EqualsFilter('isDeleted', false));
         $seoCriteria->addFilter(new EqualsFilter('salesChannelId', $context->getSalesChannelId()));
+        $seoCriteria->addFilter(new EqualsFilter('languageId', $context->getLanguageId()));
 
         // Alphabetisch statt in Menüreihenfolge: Die steckt in der Verkettung über `afterCategoryId`
         // und lässt sich nicht als Sortierung abfragen.
@@ -272,12 +274,11 @@ final class LlmsTxtGenerator
 
         $seoUrls = $category->getSeoUrls();
         if ($seoUrls === null || $seoUrls->count() === 0) {
-            // Eine sichtbare Seite ohne eigene Adresse ist ein Pflegefehler, deshalb `warning`.
-            // Laut wird es trotzdem nicht: Sortiergruppen und Verweis-Kategorien hat
-            // `loadActiveChildren()` schon ausgefiltert, hier kommt nur der echte Sonderfall an.
-            // Die Kern-Vorgabe für `prod` schreibt erst ab `error` ins Protokoll; wer die Meldung
-            // dort sehen will, braucht für den Kanal `rc_ai_discovery` eine eigene Stufe.
-            $this->logger->warning('rc-ai-discovery: Kategorie ohne kanonische Adresse in der llms.txt ausgelassen', [
+            // Eine sichtbare Seite ohne eigene Adresse ist ein Pflegefehler. `error`, weil die
+            // Kern-Vorgabe für `prod` erst ab dieser Stufe ins Protokoll schreibt; als `warning` erschien
+            // die Meldung dort nie. Laut wird es trotzdem nicht: Sortiergruppen und Verweis-Kategorien
+            // hat `loadActiveChildren()` schon ausgefiltert, hier kommt nur der echte Sonderfall an.
+            $this->logger->error('rc-ai-discovery: Kategorie ohne kanonische Adresse in der llms.txt ausgelassen', [
                 'categoryId' => $category->getId(),
                 'name' => $name,
             ]);

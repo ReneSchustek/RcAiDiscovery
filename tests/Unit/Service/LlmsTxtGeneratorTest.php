@@ -128,10 +128,10 @@ final class LlmsTxtGeneratorTest extends TestCase
     {
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::once())
-            ->method('warning')
+            ->method('error')
             ->with(
                 self::stringContains('ohne kanonische Adresse'),
-                self::callback(static fn (array $kontext): bool => ($kontext['categoryId'] ?? null) === 'cat-still')
+                self::callback(static fn (array $logContext): bool => ($logContext['categoryId'] ?? null) === 'cat-still')
             );
 
         $this->generatorWithTopLevel([$this->categoryWithoutSeoUrl('cat-still', 'Ohne Adresse', null)], $logger)

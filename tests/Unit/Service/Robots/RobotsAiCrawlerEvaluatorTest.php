@@ -173,6 +173,30 @@ final class RobotsAiCrawlerEvaluatorTest extends TestCase
             CrawlerStatus::REASON_BLOCKED_OWN,
             $this->reasonOf($this->evaluate("User-agent: GPTBot\nDisallow: /\n", ['GPTBot']), 'GPTBot')
         );
+        self::assertSame(
+            CrawlerStatus::REASON_ALLOWED_OWN,
+            $this->reasonOf($this->evaluate("User-agent: GPTBot\nAllow: /\n\nUser-agent: *\nDisallow: /\n", ['GPTBot']), 'GPTBot')
+        );
+        self::assertSame(
+            CrawlerStatus::REASON_BLOCKED_WILDCARD,
+            $this->reasonOf($this->evaluate("User-agent: *\nDisallow: /\n", ['GPTBot']), 'GPTBot')
+        );
+    }
+
+    /**
+     * Was: Die Domain des Kanals liegt unter /en/, gesperrt ist nur /en/.
+     * Warum: Geprüft wurde bisher nur `/`; der Kanal galt als erreichbar, obwohl der Crawler ihn nicht sieht.
+     * Erwartet: unter `/` erlaubt, unter `/en/` gesperrt.
+     */
+    public function testPathOfTheDomainIsChecked(): void
+    {
+        $parser = new RobotsDirectiveParser(new EventDispatcher());
+        $parsed = $parser->parse("User-agent: GPTBot\nDisallow: /en/\n", Context::createDefaultContext(), null);
+        $crawler = [new AiCrawler('GPTBot', AiCrawlerCatalog::GROUP_SEARCH)];
+        $evaluator = new RobotsAiCrawlerEvaluator(new AiCrawlerCatalog());
+
+        self::assertSame(CrawlerStatus::ALLOWED, $this->statusOf($evaluator->evaluate($parsed, $crawler), 'GPTBot'));
+        self::assertSame(CrawlerStatus::BLOCKED, $this->statusOf($evaluator->evaluate($parsed, $crawler, '/en/'), 'GPTBot'));
     }
 
     /**

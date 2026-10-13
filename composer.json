@@ -3,7 +3,7 @@
     "description": "Liefert eine optimierte llms.txt aus und prüft, ob die robots.txt die relevanten KI-Crawler zulässt (Shopware 6.7/6.8)",
     "type": "shopware-platform-plugin",
     "license": "MIT",
-    "version": "0.6.3",
+    "version": "0.7.0",
     "authors": [
         {
             "name": "Ruhrcoder",

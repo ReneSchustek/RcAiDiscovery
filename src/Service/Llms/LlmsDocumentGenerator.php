@@ -90,18 +90,23 @@ class LlmsDocumentGenerator
 
     /**
      * Schreibt Kurz- und Langfassung einer Domain. Mit `$force` werden auch bearbeitete Dokumente
-     * überschrieben, und zwar beide Fassungen. Fehler fängt die Methode nicht ab; das übernimmt
-     * `generateAll()`, für den Einzelaufruf der Aufrufer.
+     * überschrieben; `$onlyVariant` beschränkt das auf eine Fassung, damit das Zurücksetzen der einen die
+     * bearbeitete andere stehen lässt. Fehler fängt die Methode nicht ab; das übernimmt `generateAll()`,
+     * für den Einzelaufruf der Aufrufer.
      *
      * @return int Anzahl geschriebener Dokumente dieser Domain
      */
-    public function generateForDomain(SalesChannelDomainEntity $domain, Context $context, bool $force = false): int
+    public function generateForDomain(SalesChannelDomainEntity $domain, Context $context, bool $force = false, ?string $onlyVariant = null): int
     {
         $existing = $this->loadDocumentsOfDomain($domain->getId(), $context);
         $salesChannelContext = null;
         $payload = [];
 
         foreach ([LlmsDocumentDefinition::VARIANT_SHORT, LlmsDocumentDefinition::VARIANT_FULL] as $variant) {
+            if ($onlyVariant !== null && $variant !== $onlyVariant) {
+                continue;
+            }
+
             $document = $existing[$variant] ?? null;
 
             // Redaktionell bearbeitete Dokumente bleiben stehen. Nur `force` setzt sie zurück.
@@ -160,9 +165,9 @@ class LlmsDocumentGenerator
     }
 
     /**
-     * Verwirft die Bearbeitung und stellt den automatischen Stand wieder her. Über
-     * `generateForDomain()` mit `force` trifft das beide Fassungen der Domain, nicht nur das
-     * angegebene Dokument. Fehlen Dokument oder Domain, endet der Aufruf in einer
+     * Verwirft die Bearbeitung und stellt den automatischen Stand wieder her, nur für dieses Dokument;
+     * die andere Fassung derselben Domain bleibt, wie sie ist, auch wenn sie bearbeitet wurde. Fehlen
+     * Dokument oder Domain, endet der Aufruf in einer
      * `LlmsDocumentException` mit Statuscode 404.
      */
     public function regenerate(string $documentId, Context $context): void
@@ -181,7 +186,7 @@ class LlmsDocumentGenerator
             throw LlmsDocumentException::domainNotFound($document->getSalesChannelDomainId());
         }
 
-        $this->generateForDomain($domain, $context, true);
+        $this->generateForDomain($domain, $context, true, $document->getVariant());
     }
 
     /**

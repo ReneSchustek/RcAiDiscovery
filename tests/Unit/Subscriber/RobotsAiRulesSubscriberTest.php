@@ -7,6 +7,7 @@ namespace Ruhrcoder\RcAiDiscovery\Tests\Unit\Subscriber;
 use PHPUnit\Framework\TestCase;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\AiRulesConfigProvider;
+use Ruhrcoder\RcAiDiscovery\Service\Robots\HostSalesChannelResolver;
 use Ruhrcoder\RcAiDiscovery\Subscriber\RobotsAiRulesSubscriber;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\PlatformRequest;
@@ -38,9 +39,8 @@ final class RobotsAiRulesSubscriberTest extends TestCase
     }
 
     /**
-     * Die vier erwarteten Zeilen sind die Spiegelung aus `allowDirectives()`. Der Test liest die
-     * Core-Vorlage nicht mit: deren `Allow: /*referringSalesChannel=` und `Allow: /thumbnail/*?ts=`
-     * (Core 6.7.15.0) fehlen in der Spiegelung, ohne dass er anschlägt.
+     * Die sechs erwarteten Zeilen sind die Vorgaberegeln der Kern-Vorlage `robots.txt.twig` (6.7.15.0) in
+     * derselben Reihenfolge. Ändert der Kern sie, gehört diese Liste mitgezogen.
      */
     public function testAllowedGroupMirrorsCoreDefaultRules(): void
     {
@@ -51,10 +51,37 @@ final class RobotsAiRulesSubscriberTest extends TestCase
         $block = $this->blockFor($page, 'PerplexityBot');
         self::assertNotNull($block);
         self::assertSame(
-            ['Allow: /', 'Disallow: /*?', 'Allow: /*theme/', 'Allow: /media/*?ts='],
+            ['Allow: /', 'Disallow: /*?', 'Allow: /*referringSalesChannel=', 'Allow: /*theme/', 'Allow: /media/*?ts=', 'Allow: /thumbnail/*?ts='],
             array_map(static fn (RobotsDirective $d): string => $d->render(), $block->directives),
             'Ein eigener Block ersetzt den Sammelblock — die Core-Schutzregeln müssen mitkommen.'
         );
+    }
+
+    /**
+     * Was: echter Abruf von /robots.txt, ohne Verkaufskanal an der Anfrage; für den Host ist ein Kanal
+     *      hinterlegt, und dort sind die KI-Regeln eingeschaltet, global nicht.
+     * Warum: So kam die Einstellung je Kanal nie an (BRIEF03, Befund 1).
+     * Erwartet: Die Blöcke stehen da; der Kanal kam über den Hostnamen.
+     */
+    public function testChannelIsResolvedFromTheHostWhenTheRequestHasNone(): void
+    {
+        $systemConfig = $this->createMock(SystemConfigService::class);
+        $systemConfig->method('getBool')->willReturnCallback(
+            static fn (string $key, ?string $salesChannelId = null): bool => $salesChannelId === 'kanal-host'
+        );
+        $systemConfig->method('getString')->willReturnCallback(
+            static fn (string $key, ?string $salesChannelId = null): string => $salesChannelId === 'kanal-host' ? 'allow' : ''
+        );
+        $resolver = $this->createMock(HostSalesChannelResolver::class);
+        $resolver->expects(self::once())->method('resolve')->with('www.edelstahl-trummer.de')->willReturn('kanal-host');
+
+        $page = $this->page();
+        $request = new Request();
+        $request->server->set('HTTP_HOST', 'www.edelstahl-trummer.de');
+        (new RobotsAiRulesSubscriber(new AiCrawlerCatalog(), new AiRulesConfigProvider($systemConfig), $resolver))
+            ->onRobotsPageLoaded(new RobotsPageLoadedEvent($page, Context::createDefaultContext(), $request));
+
+        self::assertNotNull($this->blockFor($page, 'PerplexityBot'));
     }
 
     public function testBlockedGroupWritesDisallowOnly(): void
@@ -150,7 +177,11 @@ final class RobotsAiRulesSubscriberTest extends TestCase
             static fn (string $key): string => (string) ($config[self::shortKey($key)] ?? '')
         );
 
-        return new RobotsAiRulesSubscriber(new AiCrawlerCatalog(), new AiRulesConfigProvider($systemConfig));
+        return new RobotsAiRulesSubscriber(
+            new AiCrawlerCatalog(),
+            new AiRulesConfigProvider($systemConfig),
+            $this->createMock(HostSalesChannelResolver::class),
+        );
     }
 
     /**

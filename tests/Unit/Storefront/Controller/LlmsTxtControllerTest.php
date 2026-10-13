@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ruhrcoder\RcAiDiscovery\Tests\Unit\Storefront\Controller;
 
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentCollection;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentDefinition;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentEntity;
@@ -14,11 +15,15 @@ use Shopware\Core\Framework\Adapter\Cache\CacheTagCollector;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\SalesChannelRequest;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelDomain\SalesChannelDomainCollection;
 use Shopware\Core\System\SalesChannel\Aggregate\SalesChannelDomain\SalesChannelDomainEntity;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Prüft die Auslieferung von `/llms.txt` und `/llms-full.txt` aus dem gespeicherten Dokument.
@@ -59,12 +64,46 @@ final class LlmsTxtControllerTest extends TestCase
             $documentRepository,
             $this->domainRepository(),
             $generator,
-            $this->createMock(CacheTagCollector::class)
+            $this->createMock(CacheTagCollector::class),
+            new ArrayAdapter(),
+            $this->createMock(LoggerInterface::class)
         );
 
         $response = $controller->llmsTxt($this->request(), Context::createDefaultContext());
 
         self::assertSame("# Frisch erzeugt\n", $response->getContent());
+    }
+
+    /**
+     * Was: Die Erzeugung bei Bedarf scheitert.
+     * Warum: Bisher antwortete /llms.txt mit 500, und jeder weitere Abruf versuchte es erneut (BRIEF03, Befund 7).
+     * Erwartet: 503 mit Retry-After, ein Protokolleintrag; der zweite Abruf versucht es nicht noch einmal.
+     */
+    public function testFailedGenerationAnswers503AndIsNotRetriedImmediately(): void
+    {
+        $generator = $this->createMock(LlmsDocumentGenerator::class);
+        $generator->expects(self::once())->method('generateForDomain')->willThrowException(new \RuntimeException('kaputt'));
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('error');
+
+        $documentRepository = $this->createMock(EntityRepository::class);
+        $documentRepository->method('search')->willReturn($this->searchResult(new LlmsDocumentCollection()));
+
+        $controller = new LlmsTxtController(
+            $documentRepository,
+            $this->domainRepository(),
+            $generator,
+            $this->createMock(CacheTagCollector::class),
+            new ArrayAdapter(),
+            $logger
+        );
+
+        $first = $controller->llmsTxt($this->request(), Context::createDefaultContext());
+        $second = $controller->llmsTxt($this->request(), Context::createDefaultContext());
+
+        self::assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $first->getStatusCode());
+        self::assertSame('300', $first->headers->get('Retry-After'));
+        self::assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $second->getStatusCode());
     }
 
     public function testEmptyResponseWithoutDomainAttribute(): void
@@ -78,21 +117,36 @@ final class LlmsTxtControllerTest extends TestCase
     }
 
     /**
-     * Das Repository-Double liefert jedes Dokument ohne Rücksicht auf die Suchkriterien. Dass die lange
-     * Variante angefragt wird, belegt deshalb nur das Cache-Schlagwort, nicht der Inhalt.
+     * Das Cache-Schlagwort und die Suche nach dem Dokument müssen beide die lange Fassung meinen. Das
+     * Repository-Double liefert nur, wenn die Kriterien auf `variant = full` filtern; vorher ignorierte
+     * es die Kriterien, und der Test belegte die Abfrage nicht.
      */
     public function testFullVariantIsRequested(): void
     {
+        $documentRepository = $this->createMock(EntityRepository::class);
+        $documentRepository->method('search')->willReturnCallback(function (Criteria $criteria): EntitySearchResult {
+            $variants = array_map(
+                static fn (EqualsFilter $f): mixed => $f->getValue(),
+                array_values(array_filter($criteria->getFilters(), static fn ($f): bool => $f instanceof EqualsFilter && $f->getField() === 'variant'))
+            );
+
+            return $this->searchResult(new LlmsDocumentCollection(
+                $variants === [LlmsDocumentDefinition::VARIANT_FULL] ? [$this->document("# Lang\n", LlmsDocumentDefinition::VARIANT_FULL)] : []
+            ));
+        });
+
         $collector = $this->createMock(CacheTagCollector::class);
         $collector->expects(self::once())
             ->method('addTag')
             ->with(LlmsDocumentDefinition::cacheTag(self::DOMAIN_ID, LlmsDocumentDefinition::VARIANT_FULL));
 
         $controller = new LlmsTxtController(
-            $this->documentRepository([$this->document("# Lang\n", LlmsDocumentDefinition::VARIANT_FULL)]),
+            $documentRepository,
             $this->domainRepository(),
             $this->createMock(LlmsDocumentGenerator::class),
-            $collector
+            $collector,
+            new ArrayAdapter(),
+            $this->createMock(LoggerInterface::class)
         );
 
         self::assertSame("# Lang\n", $controller->llmsFullTxt($this->request(), Context::createDefaultContext())->getContent());
@@ -107,7 +161,9 @@ final class LlmsTxtControllerTest extends TestCase
             $this->documentRepository($documents),
             $this->domainRepository(),
             $this->createMock(LlmsDocumentGenerator::class),
-            $this->createMock(CacheTagCollector::class)
+            $this->createMock(CacheTagCollector::class),
+            new ArrayAdapter(),
+            $this->createMock(LoggerInterface::class)
         );
     }
 

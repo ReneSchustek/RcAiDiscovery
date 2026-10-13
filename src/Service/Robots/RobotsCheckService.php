@@ -78,7 +78,12 @@ final class RobotsCheckService
 
             $parsed = $this->parser->parse($robotsTxt, $context, $salesChannel->getId());
 
-            return new SalesChannelRobotsStatus($salesChannel->getId(), $name, $url, $this->evaluator->evaluate($parsed));
+            return new SalesChannelRobotsStatus(
+                $salesChannel->getId(),
+                $name,
+                $url,
+                $this->evaluator->evaluate($parsed, null, self::pathOf($url))
+            );
         } catch (\Throwable $exception) {
             // Ein Fehler in einem Kanal darf die Prüfung der übrigen nicht abbrechen. Er landet im
             // Protokoll, in der Anzeige steht der Kanal auf „unbekannt".
@@ -94,8 +99,7 @@ final class RobotsCheckService
 
     /**
      * Geprüft wird nur der Host einer Domain des Kanals, weil die robots.txt je Host ausgeliefert
-     * wird und die Kanäle meist nur einen haben. Welche Domain das ist, legt die Abfrage nicht fest:
-     * Die Assoziation hat keine Sortierung.
+     * wird und die Kanäle meist nur einen haben. Welche Domain das ist, legt `preferredUrl()` fest.
      */
     private function firstDomainUrl(SalesChannelEntity $salesChannel): ?string
     {
@@ -104,7 +108,39 @@ final class RobotsCheckService
             return null;
         }
 
-        return $domains->first()?->getUrl();
+        $urls = array_values(array_map(static fn ($domain): string => $domain->getUrl(), $domains->getElements()));
+
+        return self::preferredUrl($urls);
+    }
+
+    /**
+     * Die Domain ohne Pfad zuerst, dann die mit dem kürzesten Pfad, bei Gleichstand alphabetisch. Bisher nahm
+     * die Prüfung die erste Domain der unsortierten Zuordnung, bei mehreren Domains also eine zufällige.
+     *
+     * @param list<string> $urls
+     */
+    public static function preferredUrl(array $urls): ?string
+    {
+        if ($urls === []) {
+            return null;
+        }
+
+        usort($urls, static function (string $a, string $b): int {
+            return [mb_strlen(self::pathOf($a)), $a] <=> [mb_strlen(self::pathOf($b)), $b];
+        });
+
+        return $urls[0];
+    }
+
+    /**
+     * Der Pfad einer Domain mit Schrägstrich am Ende (`/` oder `/en/`). Die robots.txt gilt für den ganzen Host;
+     * ob ein Crawler den Kanal erreicht, entscheidet sich an diesem Pfad, nicht an `/`.
+     */
+    public static function pathOf(string $url): string
+    {
+        $path = trim((string) parse_url($url, \PHP_URL_PATH), '/');
+
+        return $path === '' ? '/' : '/' . $path . '/';
     }
 
     private function unknown(string $salesChannelId, string $name, ?string $url, string $reasonCode): SalesChannelRobotsStatus

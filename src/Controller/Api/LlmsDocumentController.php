@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ruhrcoder\RcAiDiscovery\Controller\Api;
 
+use Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentException;
 use Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentGenerator;
 use Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentOverview;
 use Shopware\Core\Framework\Context;
@@ -61,10 +62,13 @@ final class LlmsDocumentController
     )]
     public function save(string $documentId, Request $request, Context $context): JsonResponse
     {
-        // Der JSON-Rumpf liegt nach Shopwares Request-Umwandlung in `request`. Fehlt `content` oder
-        // ist es kein Text, wird ein leerer Inhalt gespeichert.
+        // Der JSON-Rumpf liegt nach Shopwares Request-Umwandlung in `request`. Fehlt `content` oder ist
+        // es kein Text, wird nichts gespeichert (400). Ein bewusst leerer Text bleibt erlaubt.
         $content = $request->request->get('content');
-        $this->documentGenerator->saveCustomContent($documentId, \is_string($content) ? $content : '', $context);
+        if (!\is_string($content)) {
+            throw LlmsDocumentException::contentMissing();
+        }
+        $this->documentGenerator->saveCustomContent($documentId, $content, $context);
 
         return new JsonResponse(['documents' => $this->overview->load($context)]);
     }

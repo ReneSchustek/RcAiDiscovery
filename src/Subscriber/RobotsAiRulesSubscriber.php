@@ -7,6 +7,7 @@ namespace Ruhrcoder\RcAiDiscovery\Subscriber;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawler;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\AiRulesConfigProvider;
+use Ruhrcoder\RcAiDiscovery\Service\Robots\HostSalesChannelResolver;
 use Shopware\Core\PlatformRequest;
 use Shopware\Storefront\Page\Robots\RobotsPageLoadedEvent;
 use Shopware\Storefront\Page\Robots\Struct\RobotsDirective;
@@ -28,6 +29,7 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
     public function __construct(
         private readonly AiCrawlerCatalog $catalog,
         private readonly AiRulesConfigProvider $configProvider,
+        private readonly HostSalesChannelResolver $hostResolver,
     ) {
     }
 
@@ -79,8 +81,8 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
      * mit Parametern und die Ausnahmen für Theme- und Mediendateien. Ohne sie liefen die KI-Crawler
      * als einzige in sämtliche Filter- und Sortieradressen.
      *
-     * Die Kern-Vorlage `robots.txt.twig` kennt außerdem Ausnahmen für `referringSalesChannel=` und
-     * `/thumbnail/`; die stehen hier nicht.
+     * Gespiegelt ist der Stand von Kern 6.7.15: auch die Ausnahmen für die Rückverweise aus dem
+     * Produktfeed (`referringSalesChannel=`) und für Vorschaubilder mit Cache-Buster.
      *
      * @return list<RobotsDirective>
      */
@@ -89,8 +91,10 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
         return [
             new RobotsDirective(RobotsDirectiveType::ALLOW, '/'),
             new RobotsDirective(RobotsDirectiveType::DISALLOW, '/*?'),
+            new RobotsDirective(RobotsDirectiveType::ALLOW, '/*referringSalesChannel='),
             new RobotsDirective(RobotsDirectiveType::ALLOW, '/*theme/'),
             new RobotsDirective(RobotsDirectiveType::ALLOW, '/media/*?ts='),
+            new RobotsDirective(RobotsDirectiveType::ALLOW, '/thumbnail/*?ts='),
         ];
     }
 
@@ -122,13 +126,20 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
 
     /**
      * Den Verkaufskanal setzt nur die Prüfung in der Verwaltung als Attribut. Der echte Abruf von
-     * `/robots.txt` hat keinen, weil der Kern diesen Pfad ohne Verkaufskanal auflöst; dort greift
-     * die globale Konfiguration.
+     * `/robots.txt` hat keinen, weil der Kern diesen Pfad ohne Verkaufskanal auflöst; dort wird er
+     * über den Hostnamen gesucht, wie es der Kern für seine Domain-Regeln tut. Bisher galt dort immer
+     * die globale Einstellung, und die Werte je Kanal kamen nie an.
      */
     private function salesChannelId(RobotsPageLoadedEvent $event): ?string
     {
-        $salesChannelId = $event->getRequest()->attributes->get(PlatformRequest::ATTRIBUTE_SALES_CHANNEL_ID);
+        $request = $event->getRequest();
+        $salesChannelId = $request->attributes->get(PlatformRequest::ATTRIBUTE_SALES_CHANNEL_ID);
+        if (\is_string($salesChannelId) && $salesChannelId !== '') {
+            return $salesChannelId;
+        }
 
-        return \is_string($salesChannelId) && $salesChannelId !== '' ? $salesChannelId : null;
+        $host = $request->server->get('HTTP_HOST');
+
+        return \is_string($host) ? $this->hostResolver->resolve($host) : null;
     }
 }

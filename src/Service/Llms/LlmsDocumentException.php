@@ -17,6 +17,8 @@ final class LlmsDocumentException extends HttpException
 
     public const DOMAIN_NOT_FOUND = 'RC_AI_DISCOVERY__LLMS_DOMAIN_NOT_FOUND';
 
+    public const CONTENT_MISSING = 'RC_AI_DISCOVERY__LLMS_CONTENT_MISSING';
+
     public static function documentNotFound(string $documentId): self
     {
         return new self(
@@ -24,6 +26,19 @@ final class LlmsDocumentException extends HttpException
             self::DOCUMENT_NOT_FOUND,
             'Es gibt kein llms-Dokument mit der ID "{{ documentId }}".',
             ['documentId' => $documentId]
+        );
+    }
+
+    /**
+     * Die Anfrage zum Speichern trägt kein Feld `content` oder keinen Text darin. Gespeichert wurde
+     * dann bisher ein leeres Dokument, als „bearbeitet" markiert, das keine Generierung mehr anfasste.
+     */
+    public static function contentMissing(): self
+    {
+        return new self(
+            Response::HTTP_BAD_REQUEST,
+            self::CONTENT_MISSING,
+            'Zum Speichern fehlt der Inhalt (Feld "content").'
         );
     }
 

@@ -3,6 +3,33 @@
 Alle nennenswerten Änderungen an RcAiDiscovery werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.7.0] - 2026-10-13 — KI-Regeln je Verkaufskanal kommen an, robots.txt wie der Kern
+
+> **Ausrollen:** `php bin/console plugin:update RcAiDiscovery && php bin/console cache:clear`. Keine Migration.
+
+### Behoben
+
+- **Die KI-Regeln je Verkaufskanal galten nie.** Der Kern löst `/robots.txt` ohne Verkaufskanal auf; die
+  Erweiterung nahm deshalb immer die globale Einstellung. Jetzt sucht sie den Kanal über den Hostnamen, wie der
+  Kern es für seine Domain-Regeln tut (bei mehreren Kanälen auf einem Host gilt der ohne Pfad).
+- **Zwei Schutzregeln des Kerns fehlten** in den Blöcken für zugelassene KI-Crawler: `Allow: /*referringSalesChannel=`
+  (Rückverweise aus dem Produktfeed) und `Allow: /thumbnail/*?ts=` (Vorschaubilder mit Cache-Buster).
+- **Zurücksetzen eines llms-Dokuments setzte beide Fassungen zurück**, auch eine bearbeitete zweite. Jetzt nur das
+  angefragte Dokument.
+- **`/navigation/<id>` konnte in der llms.txt landen**: Die Prüfung auf eine kanonische Adresse filterte nicht nach
+  Sprache.
+- **Die Meldung „Kategorie ohne kanonische Adresse" erschien in `prod` nie** (Stufe `warning`); jetzt `error`.
+- **Speichern ohne Inhalt** legte ein leeres, als bearbeitet markiertes Dokument an; jetzt Fehler 400.
+- **Scheiterte die Erzeugung bei Bedarf, antwortete `/llms.txt` mit 500**, und jeder Abruf versuchte es erneut.
+  Jetzt 503 mit `Retry-After: 300`, ein Protokolleintrag, fünf Minuten ohne neuen Versuch.
+- **Die Prüfung in der Verwaltung** nahm bei mehreren Domains eines Kanals eine zufällige und prüfte immer nur `/`;
+  jetzt die Domain ohne Pfad zuerst und deren Pfad.
+
+### Tests
+
+- Der Test zur Langfassung prüft jetzt den Filter der Abfrage, nicht nur das Cache-Schlagwort; die Begründungen
+  „eigener Block erlaubt" und „Sammelblock sperrt" sind abgedeckt.
+
 ## [Unveröffentlicht] — Kommentare nachgezogen
 
 Ohne Wirkung im Shop; geändert sind nur Kommentare.

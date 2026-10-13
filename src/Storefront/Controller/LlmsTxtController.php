@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ruhrcoder\RcAiDiscovery\Storefront\Controller;
 
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentCollection;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentDefinition;
 use Ruhrcoder\RcAiDiscovery\Core\Content\LlmsDocument\LlmsDocumentEntity;
@@ -38,6 +40,8 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route(defaults: [PlatformRequest::ATTRIBUTE_ROUTE_SCOPE => [StorefrontRouteScope::ID], 'auth_required' => false])]
 final class LlmsTxtController
 {
+    private const RETRY_AFTER_SECONDS = 300;
+
     /**
      * @param EntityRepository<LlmsDocumentCollection>      $documentRepository
      * @param EntityRepository<SalesChannelDomainCollection> $domainRepository
@@ -47,6 +51,8 @@ final class LlmsTxtController
         private readonly EntityRepository $domainRepository,
         private readonly LlmsDocumentGenerator $documentGenerator,
         private readonly CacheTagCollector $cacheTagCollector,
+        private readonly CacheItemPoolInterface $failureCache,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -89,8 +95,14 @@ final class LlmsTxtController
 
         $this->cacheTagCollector->addTag(LlmsDocumentDefinition::cacheTag($domainId, $variant));
 
-        $document = $this->findDocument($domainId, $variant, $context)
-            ?? $this->generateOnDemand($domainId, $variant, $context);
+        $document = $this->findDocument($domainId, $variant, $context);
+        if ($document === null) {
+            try {
+                $document = $this->generateOnDemand($domainId, $variant, $context);
+            } catch (\Throwable $exception) {
+                return $this->unavailable($domainId, $exception);
+            }
+        }
 
         return $this->textResponse($document?->getContent() ?? '');
     }
@@ -109,11 +121,14 @@ final class LlmsTxtController
      * Kaltstart nach der Installation oder für eine neue Domain: einmal erzeugen, statt eine leere
      * Datei auszuliefern. Ab dem nächsten Abruf kommt der gespeicherte Stand.
      *
-     * Erzeugt werden beide Fassungen der Domain. Fehler fängt die Methode nicht ab, sie schlagen bis
-     * zum Abruf durch.
+     * Erzeugt werden beide Fassungen der Domain. Fehler fängt `deliver()` ab (siehe `unavailable()`).
      */
     private function generateOnDemand(string $domainId, string $variant, Context $context): ?LlmsDocumentEntity
     {
+        if ($this->failureCache->getItem(self::failureKey($domainId))->isHit()) {
+            throw new GenerationFailedRecently();
+        }
+
         $domain = $this->domainRepository->search(new Criteria([$domainId]), $context)->getEntities()->first();
         if (!$domain instanceof SalesChannelDomainEntity) {
             return null;
@@ -122,6 +137,38 @@ final class LlmsTxtController
         $this->documentGenerator->generateForDomain($domain, $context);
 
         return $this->findDocument($domainId, $variant, $context);
+    }
+
+    /**
+     * Scheiterte die Erzeugung, antwortete `/llms.txt` bisher mit 500, und jeder weitere Abruf versuchte
+     * dieselbe teure Erzeugung erneut. Jetzt: einmal ins Protokoll, dann fünf Minuten lang sofort 503 mit
+     * `Retry-After`, ohne neuen Versuch. 503 statt einer leeren 200, damit kein Zwischenspeicher eine leere
+     * Datei als gültig festhält.
+     */
+    private function unavailable(string $domainId, \Throwable $exception): Response
+    {
+        if (!$exception instanceof GenerationFailedRecently) {
+            $this->logger->error('rc-ai-discovery: llms.txt ließ sich nicht erzeugen', [
+                'domainId' => $domainId,
+                'exception' => $exception,
+            ]);
+            $item = $this->failureCache->getItem(self::failureKey($domainId));
+            $item->set(true);
+            $item->expiresAfter(self::RETRY_AFTER_SECONDS);
+            $this->failureCache->save($item);
+        }
+
+        $response = new Response("llms.txt is temporarily unavailable.\n", Response::HTTP_SERVICE_UNAVAILABLE);
+        $response->headers->set('content-type', 'text/plain; charset=utf-8');
+        $response->headers->set('Retry-After', (string) self::RETRY_AFTER_SECONDS);
+        $response->headers->set('Cache-Control', 'no-store');
+
+        return $response;
+    }
+
+    private static function failureKey(string $domainId): string
+    {
+        return 'rc_ai_discovery_llms_failed_' . $domainId;
     }
 
     private function textResponse(string $content): Response

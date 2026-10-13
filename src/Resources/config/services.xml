@@ -67,6 +67,9 @@
             <argument type="service" id="sales_channel_domain.repository"/>
             <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Llms\LlmsDocumentGenerator"/>
             <argument type="service" id="Shopware\Core\Framework\Adapter\Cache\CacheTagCollector"/>
+            <argument type="service" id="cache.object"/>
+            <argument type="service" id="logger"/>
+            <tag name="monolog.logger" channel="rc_ai_discovery"/>
             <tag name="controller.service_arguments"/>
         </service>
 
@@ -78,9 +81,14 @@
         </service>
 
         <!-- Ergänzt die robots.txt um die KI-Regeln, sobald sie eingeschaltet sind. -->
+        <service id="Ruhrcoder\RcAiDiscovery\Service\Robots\HostSalesChannelResolver">
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+        </service>
+
         <service id="Ruhrcoder\RcAiDiscovery\Subscriber\RobotsAiRulesSubscriber">
             <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiCrawlerCatalog"/>
             <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\AiRulesConfigProvider"/>
+            <argument type="service" id="Ruhrcoder\RcAiDiscovery\Service\Robots\HostSalesChannelResolver"/>
             <tag name="kernel.event_subscriber"/>
         </service>
 
