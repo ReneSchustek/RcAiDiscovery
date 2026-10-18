@@ -185,7 +185,7 @@ final class RobotsAiCrawlerEvaluatorTest extends TestCase
 
     /**
      * Was: Die Domain des Kanals liegt unter /en/, gesperrt ist nur /en/.
-     * Warum: Geprüft wurde bisher nur `/`; der Kanal galt als erreichbar, obwohl der Crawler ihn nicht sieht.
+     * Warum: Wer nur `/` prüft, hält den Kanal für erreichbar, obwohl der Crawler ihn nicht sieht.
      * Erwartet: unter `/` erlaubt, unter `/en/` gesperrt.
      */
     public function testPathOfTheDomainIsChecked(): void

@@ -30,8 +30,8 @@ final class LlmsDocumentException extends HttpException
     }
 
     /**
-     * Die Anfrage zum Speichern trägt kein Feld `content` oder keinen Text darin. Gespeichert wurde
-     * dann bisher ein leeres Dokument, als „bearbeitet" markiert, das keine Generierung mehr anfasste.
+     * Die Anfrage zum Speichern trägt kein Feld `content` oder keinen Text darin. Ließe man das
+     * durch, stünde ein leeres Dokument als „bearbeitet" im Bestand, und keine Generierung fasste es mehr an.
      */
     public static function contentMissing(): self
     {

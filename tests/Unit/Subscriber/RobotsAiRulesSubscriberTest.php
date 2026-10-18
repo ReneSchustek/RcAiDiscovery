@@ -60,8 +60,8 @@ final class RobotsAiRulesSubscriberTest extends TestCase
     /**
      * Was: echter Abruf von /robots.txt, ohne Verkaufskanal an der Anfrage; für den Host ist ein Kanal
      *      hinterlegt, und dort sind die KI-Regeln eingeschaltet, global nicht.
-     * Warum: So kam die Einstellung je Kanal nie an.
-     * Erwartet: Die Blöcke stehen da; der Kanal kam über den Hostnamen.
+     * Warum: Ohne Suche über den Hostnamen käme die Einstellung je Kanal nie an.
+     * Erwartet: Die Blöcke stehen da; der Kanal kommt über den Hostnamen.
      */
     public function testChannelIsResolvedFromTheHostWhenTheRequestHasNone(): void
     {

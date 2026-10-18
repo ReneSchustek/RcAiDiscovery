@@ -76,7 +76,7 @@ final class LlmsTxtControllerTest extends TestCase
 
     /**
      * Was: Die Erzeugung bei Bedarf scheitert.
-     * Warum: Bisher antwortete /llms.txt mit 500, und jeder weitere Abruf versuchte es erneut.
+     * Warum: Sonst antwortete /llms.txt mit 500, und jeder weitere Abruf versuchte es erneut.
      * Erwartet: 503 mit Retry-After, ein Protokolleintrag; der zweite Abruf versucht es nicht noch einmal.
      */
     public function testFailedGenerationAnswers503AndIsNotRetriedImmediately(): void
@@ -118,8 +118,8 @@ final class LlmsTxtControllerTest extends TestCase
 
     /**
      * Das Cache-Schlagwort und die Suche nach dem Dokument müssen beide die lange Fassung meinen. Das
-     * Repository-Double liefert nur, wenn die Kriterien auf `variant = full` filtern; vorher ignorierte
-     * es die Kriterien, und der Test belegte die Abfrage nicht.
+     * Repository-Double liefert nur, wenn die Kriterien auf `variant = full` filtern; ignorierte
+     * es die Kriterien, belegte der Test die Abfrage nicht.
      */
     public function testFullVariantIsRequested(): void
     {

@@ -10,8 +10,8 @@ use Shopware\Core\Defaults;
 /**
  * Welcher Verkaufskanal gehört zu einem Hostnamen?
  *
- * `/robots.txt` löst der Kern ohne Verkaufskanal auf (`RequestTransformer::DOES_NOT_REQUIRE_SALESCHANNEL`); die
- * KI-Regeln je Kanal kamen deshalb nie an, es galt immer die globale Einstellung. Der Kern selbst findet seine
+ * `/robots.txt` löst der Kern ohne Verkaufskanal auf (`RequestTransformer::DOES_NOT_REQUIRE_SALESCHANNEL`); ohne
+ * diesen Dienst kämen die KI-Regeln je Kanal nie an, es gälte immer die globale Einstellung. Der Kern selbst findet seine
  * Domain-Regeln über den Hostnamen (`RobotsPageLoader::getDomains()`), und so macht es dieser Dienst auch: Er
  * sucht die Storefront-Domains mit genau diesem Host.
  *

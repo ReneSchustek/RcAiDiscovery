@@ -8,7 +8,8 @@ use PHPUnit\Framework\TestCase;
 use Ruhrcoder\RcAiDiscovery\Service\Robots\RobotsCheckService;
 
 /**
- * Welche Domain eines Kanals prüft die Anzeige? Bisher die erste einer unsortierten Liste, also eine zufällige.
+ * Welche Domain eines Kanals prüft die Anzeige? Ohne feste Reihenfolge die erste einer unsortierten Liste, also
+ * eine zufällige.
  */
 final class RobotsCheckServiceDomainTest extends TestCase
 {

@@ -238,7 +238,7 @@ final class LlmsTxtGenerator
         // Die kanonische Adresse wird mitgeladen, weil ohne sie kein brauchbarer Verweis entsteht;
         // die Begründung steht bei `formatCategoryLink()`. Gefiltert wird auf die Sprache des Kontexts:
         // Nur in dieser ersetzt der Platzhalter später die Adresse. Eine Adresse in einer anderen Sprache
-        // ließ die Prüfung durch, und in der Datei stand dann `/navigation/<id>`.
+        // ließe die Prüfung durch, und in der Datei stünde dann `/navigation/<id>`.
         $criteria->addAssociation('seoUrls');
         $seoCriteria = $criteria->getAssociation('seoUrls');
         $seoCriteria->addFilter(new EqualsFilter('isCanonical', true));
@@ -259,7 +259,7 @@ final class LlmsTxtGenerator
      * keine kanonische Adresse hat.
      *
      * Der Platzhalter wird später durch die SEO-Adresse ersetzt, wenn es eine gibt. Gibt es keine,
-     * bleibt die Kennungsadresse `/navigation/<id>` stehen. Am Live-Shop antwortet diese Adresse mit
+     * bleibt die Kennungsadresse `/navigation/<id>` stehen. Im Shop antwortet diese Adresse mit
      * 404, und wer `navigation/` in seiner robots.txt sperrt, macht sie zusätzlich unerreichbar.
      *
      * Eine `llms.txt` ist eine Empfehlung an Maschinen. Ein toter Verweis darin beschädigt genau das

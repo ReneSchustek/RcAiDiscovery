@@ -114,8 +114,9 @@ final class RobotsCheckService
     }
 
     /**
-     * Die Domain ohne Pfad zuerst, dann die mit dem kürzesten Pfad, bei Gleichstand alphabetisch. Bisher nahm
-     * die Prüfung die erste Domain der unsortierten Zuordnung, bei mehreren Domains also eine zufällige.
+     * Die Domain ohne Pfad zuerst, dann die mit dem kürzesten Pfad, bei Gleichstand alphabetisch. Ohne feste
+     * Reihenfolge nähme die Prüfung die erste Domain der unsortierten Zuordnung, bei mehreren Domains also eine
+     * zufällige.
      *
      * @param list<string> $urls
      */

@@ -127,8 +127,8 @@ final class RobotsAiRulesSubscriber implements EventSubscriberInterface
     /**
      * Den Verkaufskanal setzt nur die Prüfung in der Verwaltung als Attribut. Der echte Abruf von
      * `/robots.txt` hat keinen, weil der Kern diesen Pfad ohne Verkaufskanal auflöst; dort wird er
-     * über den Hostnamen gesucht, wie es der Kern für seine Domain-Regeln tut. Bisher galt dort immer
-     * die globale Einstellung, und die Werte je Kanal kamen nie an.
+     * über den Hostnamen gesucht, wie es der Kern für seine Domain-Regeln tut. Ohne diese Suche gälte
+     * dort immer die globale Einstellung, und die Werte je Kanal kämen nie an.
      */
     private function salesChannelId(RobotsPageLoadedEvent $event): ?string
     {

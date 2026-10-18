@@ -140,9 +140,9 @@ final class LlmsTxtController
     }
 
     /**
-     * Scheiterte die Erzeugung, antwortete `/llms.txt` bisher mit 500, und jeder weitere Abruf versuchte
-     * dieselbe teure Erzeugung erneut. Jetzt: einmal ins Protokoll, dann fünf Minuten lang sofort 503 mit
-     * `Retry-After`, ohne neuen Versuch. 503 statt einer leeren 200, damit kein Zwischenspeicher eine leere
+     * Scheitert die Erzeugung, geht der Fehler einmal ins Protokoll, dann antwortet `/llms.txt` fünf Minuten
+     * lang sofort mit 503 und `Retry-After`, ohne neuen Versuch. Sonst versuchte jeder weitere Abruf dieselbe
+     * teure Erzeugung erneut. 503 statt einer leeren 200, damit kein Zwischenspeicher eine leere
      * Datei als gültig festhält.
      */
     private function unavailable(string $domainId, \Throwable $exception): Response

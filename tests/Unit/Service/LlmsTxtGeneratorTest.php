@@ -107,8 +107,8 @@ final class LlmsTxtGeneratorTest extends TestCase
     }
 
     /**
-     * Ohne kanonische Adresse bliebe nur die Kennungsadresse `/navigation/<id>` stehen. Gemessen am
-     * Live-Shop (26.08.2026) antwortet sie für eine solche Kategorie mit 404; lieber ein Eintrag
+     * Ohne kanonische Adresse bliebe nur die Kennungsadresse `/navigation/<id>` stehen. Im Shop
+     * antwortet sie für eine solche Kategorie mit 404; lieber ein Eintrag
      * weniger als ein toter.
      */
     public function testSkipsCategoryWithoutCanonicalSeoUrl(): void
