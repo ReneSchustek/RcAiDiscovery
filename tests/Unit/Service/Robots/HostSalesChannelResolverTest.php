@@ -10,7 +10,7 @@ use Ruhrcoder\RcAiDiscovery\Service\Robots\HostSalesChannelResolver;
 
 /**
  * Welcher Verkaufskanal gilt für die robots.txt eines Hosts? Der echte Abruf kennt keinen Kanal; ohne diese
- * Zuordnung galten die KI-Regeln je Kanal nie.
+ * Zuordnung gälten die KI-Regeln je Kanal nie.
  */
 #[CoversClass(HostSalesChannelResolver::class)]
 final class HostSalesChannelResolverTest extends TestCase

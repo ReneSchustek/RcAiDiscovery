@@ -275,7 +275,7 @@ final class LlmsTxtGenerator
         $seoUrls = $category->getSeoUrls();
         if ($seoUrls === null || $seoUrls->count() === 0) {
             // Eine sichtbare Seite ohne eigene Adresse ist ein Pflegefehler. `error`, weil die
-            // Kern-Vorgabe für `prod` erst ab dieser Stufe ins Protokoll schreibt; als `warning` erschien
+            // Kern-Vorgabe für `prod` erst ab dieser Stufe ins Protokoll schreibt; als `warning` erschiene
             // die Meldung dort nie. Laut wird es trotzdem nicht: Sortiergruppen und Verweis-Kategorien
             // hat `loadActiveChildren()` schon ausgefiltert, hier kommt nur der echte Sonderfall an.
             $this->logger->error('rc-ai-discovery: Kategorie ohne kanonische Adresse in der llms.txt ausgelassen', [
