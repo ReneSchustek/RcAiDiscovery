@@ -3,7 +3,7 @@
 ## Schwachstelle melden
 
 Sicherheitsrelevante Funde bitte **nicht** öffentlich als Issue, sondern vertraulich an
-**security@ruhrcoder.de** melden. Wir bestätigen den Eingang und melden uns mit einer Einschätzung zurück.
+**info@ruhrcoder.de** melden. Wir bestätigen den Eingang und melden uns mit einer Einschätzung zurück.
 
 ## Plugin-spezifische Angriffsflächen
 
