@@ -2,7 +2,7 @@
     "name": "ruhrcoder/rc-ai-discovery",
     "description": "Liefert eine optimierte llms.txt aus und prüft, ob die robots.txt die relevanten KI-Crawler zulässt (Shopware 6.7/6.8)",
     "type": "shopware-platform-plugin",
-    "license": "MIT",
+    "license": "proprietary",
     "version": "0.7.0",
     "authors": [
         {

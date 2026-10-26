@@ -87,4 +87,4 @@ bin/console scheduled-task:run-single rc_ai_discovery.llms_generate
 
 ## Lizenz
 
-MIT, siehe [LICENSE](LICENSE).
+Proprietär – siehe [composer.json](composer.json).
